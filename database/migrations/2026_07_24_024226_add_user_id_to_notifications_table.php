@@ -8,19 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('notifications', function (Blueprint $table) {
-            $table->foreignId('user_id')
-                ->nullable()
-                ->after('id')
-                ->constrained()
-                ->nullOnDelete();
-        });
+        if (!Schema::hasColumn('notifications', 'user_id')) {
+            Schema::table('notifications', function (Blueprint $table) {
+                $table->foreignId('user_id')
+                    ->nullable()
+                    ->after('id')
+                    ->constrained()
+                    ->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('notifications', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('user_id');
-        });
+        if (Schema::hasColumn('notifications', 'user_id')) {
+            Schema::table('notifications', function (Blueprint $table) {
+                $table->dropConstrainedForeignId('user_id');
+            });
+        }
     }
 };
