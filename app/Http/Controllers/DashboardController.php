@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Balance;
-use App\Models\Branch;
 use App\Models\ForumMessage;
 use App\Models\Notification;
 use App\Models\Transaction;
@@ -18,8 +17,12 @@ class DashboardController extends Controller
 
         // Saldo
         $balance = Balance::firstOrCreate(
-            ['user_id' => $user->id],
-            ['amount' => 0]
+            [
+                'user_id' => $user->id,
+            ],
+            [
+                'balance' => 0,
+            ]
         );
 
         // Cabang
@@ -39,12 +42,12 @@ class DashboardController extends Controller
             ->oldest()
             ->get();
 
-        // Notifikasi admin
+        // Notifikasi Admin
         $adminNotifications = Notification::whereNull('user_id')
             ->latest()
             ->get();
 
-        // Notifikasi transaksi
+        // Notifikasi Transaksi
         $transactionNotifications = Transaction::where('user_id', $user->id)
             ->whereIn('status', ['pending', 'success', 'failed'])
             ->latest()
@@ -90,7 +93,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard/Index', [
             'user' => $user,
-            'balance' => $balance->amount,
+            'balance' => $balance->balance,
             'transactions' => $transactions,
             'messages' => $messages,
             'notifications' => $notifications,

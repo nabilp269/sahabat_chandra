@@ -30,21 +30,22 @@ class TransactionController extends Controller
             'description'      => 'nullable|string',
         ]);
 
-        $balance = Balance::where('user_id', Auth::id())->first();
+        $balance = Balance::firstOrCreate(
+            [
+                'user_id' => Auth::id(),
+            ],
+            [
+                'balance' => 0,
+            ]
+        );
 
-        if (!$balance) {
-            return back()->withErrors([
-                'amount' => 'Saldo Anda belum tersedia.',
-            ]);
-        }
-
-        if ($balance->amount <= 0) {
+        if ($balance->balance <= 0) {
             return back()->withErrors([
                 'amount' => 'Saldo Anda habis.',
             ]);
         }
 
-        if ($balance->amount < $request->amount) {
+        if ($balance->balance < $request->amount) {
             return back()->withErrors([
                 'amount' => 'Saldo tidak mencukupi.',
             ]);

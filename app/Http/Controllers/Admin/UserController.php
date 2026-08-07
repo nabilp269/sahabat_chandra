@@ -124,11 +124,11 @@ class UserController extends Controller
                 'user_id' => $user->id,
             ],
             [
-                'amount' => 0,
+                'balance' => 0,
             ]
         );
 
-        $balance->increment('amount', $request->amount);
+        $balance->increment('balance', $request->amount);
 
         return back()->with(
             'success',

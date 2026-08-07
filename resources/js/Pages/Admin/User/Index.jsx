@@ -13,7 +13,6 @@ import TopUpModal from "@/Components/Popup/TopUpModal";
 
 export default function Index({ users = [] }) {
     const [search, setSearch] = useState("");
-
     const [showTopUp, setShowTopUp] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
@@ -49,9 +48,7 @@ export default function Index({ users = [] }) {
                             type="text"
                             placeholder="Cari user..."
                             value={search}
-                            onChange={(e) =>
-                                setSearch(e.target.value)
-                            }
+                            onChange={(e) => setSearch(e.target.value)}
                             className="w-full border rounded-lg pl-10 pr-4 py-2"
                         />
                     </div>
@@ -111,15 +108,13 @@ export default function Index({ users = [] }) {
                                         <td className="p-3">
                                             {new Date(
                                                 user.created_at
-                                            ).toLocaleDateString(
-                                                "id-ID"
-                                            )}
+                                            ).toLocaleDateString("id-ID")}
                                         </td>
 
                                         <td className="p-3">
                                             <div className="flex justify-center gap-2">
 
-                                                {/* DETAIL */}
+                                                {/* Detail */}
                                                 <Link
                                                     href={route(
                                                         "users.show",
@@ -130,7 +125,7 @@ export default function Index({ users = [] }) {
                                                     <Eye size={16} />
                                                 </Link>
 
-                                                {/* EDIT */}
+                                                {/* Edit */}
                                                 <Link
                                                     href={route(
                                                         "users.edit",
@@ -141,23 +136,21 @@ export default function Index({ users = [] }) {
                                                     <Pencil size={16} />
                                                 </Link>
 
-                                                {/* TOP UP */}
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedUser(
-                                                            user
-                                                        );
-                                                        setShowTopUp(
-                                                            true
-                                                        );
-                                                    }}
-                                                    className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg"
-                                                >
-                                                    <Wallet size={16} />
-                                                </button>
+                                                {/* Top Up hanya user biasa */}
+                                                {user.role !== "admin" && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedUser(user);
+                                                            setShowTopUp(true);
+                                                        }}
+                                                        className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg"
+                                                    >
+                                                        <Wallet size={16} />
+                                                    </button>
+                                                )}
 
-                                                {/* DELETE */}
-                                                {user.id !== 1 && (
+                                                {/* Delete hanya user biasa */}
+                                                {user.role !== "admin" && (
                                                     <button
                                                         onClick={() =>
                                                             hapus(
@@ -167,11 +160,10 @@ export default function Index({ users = [] }) {
                                                         }
                                                         className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg"
                                                     >
-                                                        <Trash2
-                                                            size={16}
-                                                        />
+                                                        <Trash2 size={16} />
                                                     </button>
                                                 )}
+
                                             </div>
                                         </td>
                                     </tr>
@@ -191,7 +183,6 @@ export default function Index({ users = [] }) {
                 </div>
             </div>
 
-            {/* MODAL TOP UP */}
             {selectedUser && (
                 <TopUpModal
                     show={showTopUp}

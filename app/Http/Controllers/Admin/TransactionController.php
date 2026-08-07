@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Balance;
+use App\Models\Notification;
 use App\Models\Transaction;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,48 +43,49 @@ class TransactionController extends Controller
      */
     public function approve(Transaction $transaction)
     {
-        if ($transaction->status != 'pending') {
-            return back();
-        }
-
-        $balance = \App\Models\Balance::where(
-            'user_id',
-            $transaction->user_id
-        )->first();
-
-        if (!$balance) {
+        if ($transaction->status !== 'pending') {
             return back()->with(
                 'error',
-                'Saldo user tidak ditemukan.'
+                'Transaksi sudah diproses.'
             );
         }
 
-        if ($balance->amount < $transaction->amount) {
-            return back()->with(
-                'error',
-                'Saldo user tidak mencukupi.'
+        DB::transaction(function () use ($transaction) {
+
+            $balance = Balance::where(
+                'user_id',
+                $transaction->user_id
+            )->first();
+
+            if (!$balance) {
+                throw new \Exception('Saldo user tidak ditemukan.');
+            }
+
+            if ($balance->balance < $transaction->amount) {
+                throw new \Exception('Saldo user tidak mencukupi.');
+            }
+
+            // Kurangi saldo user
+            $balance->decrement(
+                'balance',
+                $transaction->amount
             );
-        }
 
-        // Kurangi saldo
-        $balance->decrement(
-            'amount',
-            $transaction->amount
-        );
+            // Update status transaksi
+            $transaction->update([
+                'status' => 'success',
+            ]);
 
-        // Update status transaksi
-        $transaction->update([
-            'status' => 'success',
-        ]);
-
-        // Buat notifikasi
-        \App\Models\Notification::create([
-            'title' => 'Transaksi Berhasil',
-            'message' => 'Transaksi Anda sebesar Rp '
-                . number_format($transaction->amount,0,',','.')
-                . ' berhasil diproses.',
-            'user_id' => $transaction->user_id,
-        ]);
+            // Simpan notifikasi
+            Notification::create([
+                'user_id' => $transaction->user_id,
+                'title' => 'Transaksi Berhasil',
+                'message' =>
+                    'Transfer sebesar Rp ' .
+                    number_format($transaction->amount, 0, ',', '.') .
+                    ' berhasil diproses Admin.',
+            ]);
+        });
 
         return back()->with(
             'success',
@@ -95,18 +98,21 @@ class TransactionController extends Controller
      */
     public function reject(Transaction $transaction)
     {
-        if ($transaction->status != 'pending') {
-            return back();
+        if ($transaction->status !== 'pending') {
+            return back()->with(
+                'error',
+                'Transaksi sudah diproses.'
+            );
         }
 
         $transaction->update([
             'status' => 'failed',
         ]);
 
-        \App\Models\Notification::create([
+        Notification::create([
+            'user_id' => $transaction->user_id,
             'title' => 'Transaksi Ditolak',
             'message' => 'Transaksi Anda ditolak oleh Admin.',
-            'user_id' => $transaction->user_id,
         ]);
 
         return back()->with(
