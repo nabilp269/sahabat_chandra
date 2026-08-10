@@ -7,9 +7,11 @@ import {
     XCircle,
     Clock3,
     CreditCard,
+    ScanLine,
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { router } from "@inertiajs/react";
+import BarcodeScanner from "@/Components/BarcodeScanner";
 
 export default function Index({ transactions }) {
     useEffect(() => {
@@ -25,6 +27,7 @@ export default function Index({ transactions }) {
     }, []);
 
     const [search, setSearch] = useState("");
+    const [showScanner, setShowScanner] = useState(false);
 
     const filteredTransactions = useMemo(() => {
 
@@ -121,7 +124,9 @@ export default function Index({ transactions }) {
                 {/* Search */}
                 <div className="bg-white rounded-2xl shadow p-5">
 
-                    <div className="relative">
+                    <div className="flex gap-3">
+
+                    <div className="relative flex-1">
 
                         <Search
                             size={20}
@@ -140,7 +145,21 @@ export default function Index({ transactions }) {
 
                     </div>
 
+                    <button
+                        onClick={() => setShowScanner(true)}
+                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl transition shrink-0"
+                    >
+                        <ScanLine size={20} />
+                        Scan QR
+                    </button>
+
+                    </div>
+
                 </div>
+
+                {showScanner && (
+                    <BarcodeScanner onClose={() => setShowScanner(false)} />
+                )}
 
                 {/* Table */}
                 <div className="bg-white rounded-2xl shadow overflow-hidden">

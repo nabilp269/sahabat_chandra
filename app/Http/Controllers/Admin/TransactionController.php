@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Balance;
 use App\Models\Notification;
 use App\Models\Transaction;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,6 +25,32 @@ class TransactionController extends Controller
         return Inertia::render('Admin/Transaction/Index', [
             'transactions' => $transactions,
         ]);
+    }
+
+    /**
+     * Cari transaksi berdasarkan transaction_code (untuk scan QR)
+     */
+    public function findByCode(Request $request)
+    {
+        $code = $request->query('code');
+
+        if (!$code) {
+            return response()->json(['error' => 'Kode tidak ditemukan'], 404);
+        }
+
+        // QR value bisa berupa JSON string
+        if (str_starts_with($code, '{')) {
+            $decoded = json_decode($code, true);
+            $code = $decoded['code'] ?? $code;
+        }
+
+        $transaction = Transaction::where('transaction_code', $code)->first();
+
+        if (!$transaction) {
+            return response()->json(['error' => 'Transaksi tidak ditemukan'], 404);
+        }
+
+        return response()->json(['id' => $transaction->id]);
     }
 
     /**

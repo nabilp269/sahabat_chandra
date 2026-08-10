@@ -71,13 +71,14 @@ class TransactionController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($request) {
+        $transaction = null;
+        DB::transaction(function () use ($request, &$transaction) {
 
             $branchId = Auth::user()
                 ->branches()
                 ->value('branches.id');
 
-            Transaction::create([
+            $transaction = Transaction::create([
                 'user_id' => Auth::id(),
                 'branch_id' => $branchId,
                 'transaction_code' => 'TRX' . now()->format('YmdHis') . rand(100, 999),
@@ -91,10 +92,9 @@ class TransactionController extends Controller
             ]);
         });
 
-        return back()->with(
-            'success',
-            'Transaksi berhasil dikirim. Menunggu persetujuan Admin.'
-        );
+        return response()->json([
+            'transaction' => $transaction->toArray(),
+        ]);
     }
 
     /*

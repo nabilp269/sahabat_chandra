@@ -1,18 +1,16 @@
 import Modal from "../Modal";
-import { useForm, usePage } from "@inertiajs/react";
+import { usePage } from "@inertiajs/react";
+import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
+import axios from "axios";
 import Swal from "sweetalert2";
 
 export default function TransactionModal({ show, onClose, user }) {
-    const { flash } = usePage().props;
-
-    const {
-        data,
-        setData,
-        post,
-        processing,
-        errors,
-        reset,
-    } = useForm({
+    const { props } = usePage();
+    const [receipt, setReceipt] = useState(null);
+    const [processing, setProcessing] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [form, setForm] = useState({
         receiver_name: "",
         receiver_bank: "",
         receiver_account: "",
@@ -22,47 +20,134 @@ export default function TransactionModal({ show, onClose, user }) {
 
     if (!show) return null;
 
-    const submit = (e) => {
+    const handleChange = (field, value) => {
+        setForm((prev) => ({ ...prev, [field]: value }));
+        setErrors((prev) => ({ ...prev, [field]: null }));
+    };
+
+    const submit = async (e) => {
         e.preventDefault();
+        setProcessing(true);
+        setErrors({});
 
-        post(route("transaction.store"), {
-            preserveScroll: true,
-            preserveState: true,
-
-            onSuccess: () => {
-                Swal.fire({
-                    icon: "success",
-                    title: "Berhasil",
-                    text:
-                        flash?.success ??
-                        "Transaksi berhasil dikirim.",
-                    confirmButtonColor: "#2563eb",
-                });
-
-                reset();
-                onClose();
-            },
-
-            onError: (errors) => {
+        try {
+            const res = await axios.post(route("transaction.store"), form);
+            setReceipt(res.data.transaction);
+            setForm({
+                receiver_name: "",
+                receiver_bank: "",
+                receiver_account: "",
+                amount: "",
+                description: "",
+            });
+        } catch (err) {
+            if (err.response?.status === 422) {
+                const errs = err.response.data.errors ?? {};
+                setErrors(Object.fromEntries(
+                    Object.entries(errs).map(([k, v]) => [k, v[0]])
+                ));
+            } else {
                 Swal.fire({
                     icon: "warning",
                     title: "Transaksi Gagal",
-                    text:
-                        errors.amount ||
-                        errors.error ||
-                        "Silakan periksa kembali data transaksi.",
+                    text: "Silakan periksa kembali data transaksi.",
                     confirmButtonColor: "#f59e0b",
                 });
-            },
-        });
+            }
+        } finally {
+            setProcessing(false);
+        }
     };
 
+    const handleClose = () => {
+        setReceipt(null);
+        setErrors({});
+        onClose();
+    };
+
+    // Tampilan kode & QR setelah berhasil
+    if (receipt) {
+        const qrValue = JSON.stringify({
+            code: receipt.transaction_code,
+            name: receipt.receiver_name,
+            bank: receipt.receiver_bank,
+            account: receipt.receiver_account,
+            amount: receipt.amount,
+        });
+
+        return (
+            <Modal show={show} onClose={handleClose}>
+                <div className="flex flex-col bg-white rounded-2xl overflow-hidden">
+                    {/* Header */}
+                    <div className="bg-blue-600 p-5 text-white text-center">
+                        <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span className="text-blue-600 text-2xl">✓</span>
+                        </div>
+                        <h2 className="text-xl font-bold">Transaksi Dibuat</h2>
+                        <p className="text-blue-100 text-sm mt-1">
+                            Tunjukkan kode ini ke kasir
+                        </p>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="flex flex-col items-center py-6 px-5 border-b">
+                        <QRCodeSVG value={qrValue} size={180} />
+                        <p className="mt-4 text-xs text-slate-500">Scan QR Code</p>
+                    </div>
+
+                    {/* Kode Transaksi */}
+                    <div className="px-5 py-4 border-b text-center">
+                        <p className="text-sm text-slate-500 mb-1">Kode Transaksi</p>
+                        <p className="text-2xl font-bold tracking-widest text-blue-700">
+                            {receipt.transaction_code}
+                        </p>
+                    </div>
+
+                    {/* Detail */}
+                    <div className="px-5 py-4 space-y-2 text-sm border-b">
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Penerima</span>
+                            <span className="font-semibold">{receipt.receiver_name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Bank</span>
+                            <span className="font-semibold">{receipt.receiver_bank}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">No. Rekening</span>
+                            <span className="font-semibold">{receipt.receiver_account}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Jumlah</span>
+                            <span className="font-bold text-blue-700">
+                                Rp {Number(receipt.amount).toLocaleString("id-ID")}
+                            </span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-500">Status</span>
+                            <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                Menunggu Kasir
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="p-4">
+                        <button
+                            onClick={handleClose}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition"
+                        >
+                            Selesai
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+        );
+    }
+
+    // Tampilan form
     return (
         <Modal show={show} onClose={onClose}>
-            <form
-                onSubmit={submit}
-                className="flex flex-col h-full bg-white"
-            >
+            <form onSubmit={submit} className="flex flex-col h-full bg-white">
                 <div className="p-5 border-b">
                     <h2 className="text-xl font-bold text-blue-700">
                         Formulir Kirim Uang
@@ -70,26 +155,20 @@ export default function TransactionModal({ show, onClose, user }) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5 space-y-4">
-
                     <div className="bg-blue-50 rounded-xl p-4">
-                        <h3 className="font-bold mb-3">
-                            Data Pengirim
-                        </h3>
-
+                        <h3 className="font-bold mb-3">Data Pengirim</h3>
                         <input
                             type="text"
                             readOnly
                             value={user?.name ?? ""}
                             className="w-full border rounded-lg p-3 bg-gray-100 mb-3"
                         />
-
                         <input
                             type="text"
                             readOnly
                             value={user?.email ?? ""}
                             className="w-full border rounded-lg p-3 bg-gray-100 mb-3"
                         />
-
                         <input
                             type="text"
                             readOnly
@@ -101,18 +180,14 @@ export default function TransactionModal({ show, onClose, user }) {
                     <input
                         type="text"
                         placeholder="Nama Penerima"
-                        value={data.receiver_name}
-                        onChange={(e) =>
-                            setData("receiver_name", e.target.value)
-                        }
+                        value={form.receiver_name}
+                        onChange={(e) => handleChange("receiver_name", e.target.value)}
                         className="w-full border rounded-lg p-3"
                     />
 
                     <select
-                        value={data.receiver_bank}
-                        onChange={(e) =>
-                            setData("receiver_bank", e.target.value)
-                        }
+                        value={form.receiver_bank}
+                        onChange={(e) => handleChange("receiver_bank", e.target.value)}
                         className="w-full border rounded-lg p-3"
                     >
                         <option value="">Pilih Bank</option>
@@ -126,20 +201,16 @@ export default function TransactionModal({ show, onClose, user }) {
                     <input
                         type="text"
                         placeholder="Nomor Rekening"
-                        value={data.receiver_account}
-                        onChange={(e) =>
-                            setData("receiver_account", e.target.value)
-                        }
+                        value={form.receiver_account}
+                        onChange={(e) => handleChange("receiver_account", e.target.value)}
                         className="w-full border rounded-lg p-3"
                     />
 
                     <input
                         type="number"
                         placeholder="Jumlah Transfer"
-                        value={data.amount}
-                        onChange={(e) =>
-                            setData("amount", e.target.value)
-                        }
+                        value={form.amount}
+                        onChange={(e) => handleChange("amount", e.target.value)}
                         className="w-full border rounded-lg p-3"
                         min="1"
                     />
@@ -147,30 +218,23 @@ export default function TransactionModal({ show, onClose, user }) {
                     <textarea
                         rows={3}
                         placeholder="Catatan"
-                        value={data.description}
-                        onChange={(e) =>
-                            setData("description", e.target.value)
-                        }
+                        value={form.description}
+                        onChange={(e) => handleChange("description", e.target.value)}
                         className="w-full border rounded-lg p-3"
                     />
 
                     {Object.keys(errors).length > 0 && (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                             {Object.values(errors).map((err, index) => (
-                                <p
-                                    key={index}
-                                    className="text-sm text-red-600"
-                                >
+                                <p key={index} className="text-sm text-red-600">
                                     • {err}
                                 </p>
                             ))}
                         </div>
                     )}
-
                 </div>
 
                 <div className="border-t p-4 flex gap-3">
-
                     <button
                         type="button"
                         onClick={onClose}
@@ -179,17 +243,13 @@ export default function TransactionModal({ show, onClose, user }) {
                     >
                         Batal
                     </button>
-
                     <button
                         type="submit"
                         disabled={processing}
                         className="flex-1 bg-blue-600 text-white rounded-lg py-3"
                     >
-                        {processing
-                            ? "Menyimpan..."
-                            : "Simpan Transaksi"}
+                        {processing ? "Menyimpan..." : "Simpan Transaksi"}
                     </button>
-
                 </div>
             </form>
         </Modal>

@@ -107,6 +107,9 @@ Route::prefix('admin')
         Route::get('/transactions', [AdminTransactionController::class, 'index'])
             ->name('admin.transaction.index');
 
+        Route::get('/transactions/find-by-code', [AdminTransactionController::class, 'findByCode'])
+            ->name('admin.transaction.find-by-code');
+
         Route::get('/transactions/{transaction}', [AdminTransactionController::class, 'show'])
             ->name('admin.transaction.show');
 

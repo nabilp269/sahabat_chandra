@@ -79,10 +79,17 @@ class DashboardController extends Controller
                 }
 
                 return (object) [
-                    'id' => 'trx-' . $trx->id,
-                    'title' => $title,
-                    'message' => $message,
-                    'created_at' => $trx->updated_at,
+                    'id'               => 'trx-' . $trx->id,
+                    'title'            => $title,
+                    'message'          => $message,
+                    'created_at'       => $trx->updated_at,
+                    'type'             => 'transaction',
+                    'status'           => $trx->status,
+                    'transaction_code' => $trx->transaction_code,
+                    'receiver_name'    => $trx->receiver_name,
+                    'receiver_bank'    => $trx->receiver_bank,
+                    'receiver_account' => $trx->receiver_account,
+                    'amount'           => $trx->amount,
                 ];
             });
 
