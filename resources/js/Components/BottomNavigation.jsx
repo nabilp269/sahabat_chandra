@@ -68,6 +68,7 @@ import {
     FaMapMarkerAlt,
     FaUser,
     FaHistory,
+    FaComments,
 } from "react-icons/fa";
 
 export default function BottomNavigation() {
@@ -78,6 +79,11 @@ export default function BottomNavigation() {
             name: "Beranda",
             href: route("dashboard"),
             icon: FaHome,
+        },
+        {
+            name: "Forum",
+            href: route("forum.index"),
+            icon: FaComments,
         },
         {
             name: "Lokasi",
@@ -103,7 +109,7 @@ export default function BottomNavigation() {
 
                 <div className="bg-white border-t border-gray-200 shadow-lg">
 
-                    <div className="grid grid-cols-4 h-16">
+                    <div className="grid grid-cols-5 h-16">
 
                         {menus.map((menu) => {
                             const Icon = menu.icon;

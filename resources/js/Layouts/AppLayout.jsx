@@ -32,6 +32,7 @@ import { useEffect, useState } from "react";
 
 import Navbar from "@/Components/Navbar";
 import BottomNavigation from "@/Components/BottomNavigation";
+import ForumNotificationPopup from "@/Components/ForumNotificationPopup";
 
 export default function AppLayout({
     children,
@@ -67,6 +68,8 @@ export default function AppLayout({
             </main>
 
             {isMobile && <BottomNavigation />}
+
+            <ForumNotificationPopup />
 
         </div>
     );

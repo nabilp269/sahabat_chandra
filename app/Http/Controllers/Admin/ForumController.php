@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ForumMessage;
+use App\Models\ForumComment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -15,12 +16,12 @@ class ForumController extends Controller
      */
     public function index()
     {
-        $messages = ForumMessage::with('user')
-            ->orderBy('created_at', 'asc')
-            ->get();
+        $messages = ForumMessage::with(['user', 'likes', 'comments.user'])
+            ->latest()
+            ->paginate(20);
 
         return Inertia::render('Admin/Forum/Index', [
-            'messages' => $messages,
+            'posts' => $messages,
         ]);
     }
 
@@ -70,5 +71,11 @@ class ForumController extends Controller
         $forumMessage->delete();
 
         return back()->with('success', 'Pesan berhasil dihapus.');
+    }
+
+    public function deleteComment(ForumComment $forumComment)
+    {
+        $forumComment->delete();
+        return back()->with('success', 'Komentar berhasil dihapus.');
     }
 }

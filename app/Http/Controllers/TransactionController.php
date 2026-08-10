@@ -51,6 +51,20 @@ class TransactionController extends Controller
             ]);
         }
 
+        // Cek limit bulanan 8.000 HKD
+        $monthlyTotal = Transaction::where('user_id', Auth::id())
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->whereIn('status', ['pending', 'success'])
+            ->sum('amount');
+
+        if (($monthlyTotal + $request->amount) > 8000) {
+            $remaining = max(0, 8000 - $monthlyTotal);
+            return back()->withErrors([
+                'amount' => 'Melebihi limit bulanan 8.000 HKD. Sisa limit Anda: ' . number_format($remaining, 2) . ' HKD.',
+            ]);
+        }
+
         DB::transaction(function () use ($request) {
 
             $branchId = Auth::user()

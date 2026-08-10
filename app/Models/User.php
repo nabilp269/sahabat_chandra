@@ -17,7 +17,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
-
+        'last_seen_forum_at',
         'identity_type',
         'identity_number',
         'identity_photo',
@@ -33,6 +33,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'last_seen_forum_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

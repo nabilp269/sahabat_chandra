@@ -14,7 +14,6 @@ use App\Http\Controllers\FavoriteBranchController;
 // ADMIN CONTROLLER
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ForumController as AdminForumController;
-use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Admin\BranchController as AdminBranchController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\TransactionController as AdminTransactionController;
@@ -57,8 +56,26 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/discussion/store', [DiscussionController::class, 'store'])
         ->name('discussion.store');
 
-    Route::post('/forum/store', [ForumController::class, 'store'])
-        ->name('forum.store');
+    Route::get('/forum', [ForumController::class, 'index'])
+        ->name('forum.index');
+
+    Route::get('/forum/check-new', [ForumController::class, 'checkNew'])
+        ->name('forum.check-new');
+
+    Route::post('/forum/mark-seen', [ForumController::class, 'markSeen'])
+        ->name('forum.mark-seen');
+
+    Route::delete('/forum/{forumMessage}', [ForumController::class, 'destroy'])
+        ->name('forum.destroy');
+
+    Route::post('/forum/{forumMessage}/like', [ForumController::class, 'toggleLike'])
+        ->name('forum.like');
+
+    Route::post('/forum/{forumMessage}/comment', [ForumController::class, 'addComment'])
+        ->name('forum.comment.store');
+
+    Route::delete('/forum-comment/{forumComment}', [ForumController::class, 'deleteComment'])
+        ->name('forum.comment.destroy');
 });
 
 
@@ -114,13 +131,8 @@ Route::prefix('admin')
         Route::delete('/forum/{forumMessage}', [AdminForumController::class, 'destroy'])
             ->name('admin.forum.destroy');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Notification
-        |--------------------------------------------------------------------------
-        */
-
-        Route::resource('notification', AdminNotificationController::class);
+        Route::delete('/forum-comment/{forumComment}', [AdminForumController::class, 'deleteComment'])
+            ->name('admin.forum.comment.destroy');
 
         /*
         |--------------------------------------------------------------------------

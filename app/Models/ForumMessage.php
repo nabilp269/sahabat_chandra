@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ForumMessage extends Model
 {
@@ -18,8 +19,25 @@ class ForumMessage extends Model
         'is_admin' => 'boolean',
     ];
 
+    protected $withCount = ['likes', 'comments'];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
-}   
+
+    public function likes(): HasMany
+    {
+        return $this->hasMany(ForumLike::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(ForumComment::class);
+    }
+
+    public function isLikedBy($userId): bool
+    {
+        return $this->likes()->where('user_id', $userId)->exists();
+    }
+}

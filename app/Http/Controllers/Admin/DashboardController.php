@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\ForumMessage;
-use App\Models\Notification;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -89,8 +88,6 @@ class DashboardController extends Controller
 
             "forums" => ForumMessage::count(),
 
-            "notifications" => Notification::count(),
-
             "branches" => Branch::count(),
 
             /*
@@ -123,14 +120,6 @@ class DashboardController extends Controller
 
             "latestForums" => ForumMessage::with("user")
                 ->latest()
-                ->take(5)
-                ->get(),
-
-            "latestNotifications" => Notification::latest()
-                ->take(5)
-                ->get(),
-
-            "latestBranches" => Branch::latest()
                 ->take(5)
                 ->get(),
 

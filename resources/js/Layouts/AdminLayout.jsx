@@ -2,7 +2,6 @@ import { Link, usePage } from "@inertiajs/react";
 import {
     LayoutDashboard,
     MessageCircle,
-    Bell,
     MapPin,
     Users,
     CreditCard,
@@ -29,11 +28,6 @@ export default function AdminLayout({ children }) {
             title: "Forum",
             icon: MessageCircle,
             route: "admin.forum",
-        },
-        {
-            title: "Notifikasi",
-            icon: Bell,
-            route: "notification.index",
         },
         {
             title: "Cabang",

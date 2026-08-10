@@ -89,6 +89,10 @@ export default function Navbar({
             route: route("dashboard"),
         },
         {
+            name: "Forum",
+            route: route("forum.index"),
+        },
+        {
             name: "Lokasi",
             route: route("location"),
         },

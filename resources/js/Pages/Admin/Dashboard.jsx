@@ -2,7 +2,6 @@ import AdminLayout from "@/Layouts/AdminLayout";
 import {
     Users,
     MessageCircle,
-    Bell,
     MapPin,
     CreditCard,
     TrendingUp,
@@ -24,7 +23,6 @@ export default function Dashboard({
     users,
     transactions,
     forums,
-    notifications,
     branches,
 
     todayTransactions,
@@ -49,12 +47,6 @@ export default function Dashboard({
             total: forums,
             icon: MessageCircle,
             color: "from-green-500 to-green-700",
-        },
-        {
-            title: "Notifikasi",
-            total: notifications,
-            icon: Bell,
-            color: "from-yellow-400 to-orange-500",
         },
         {
             title: "Cabang",
