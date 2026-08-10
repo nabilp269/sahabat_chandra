@@ -17,9 +17,8 @@ export default function Dashboard({
     transactions = [],
     messages = [],
     notifications = [],
-
     branches = [],
-
+    limit = {},
 }) {
 
     const [showHistory, setShowHistory] = useState(false);
@@ -29,7 +28,7 @@ export default function Dashboard({
     // Aman walaupun flash tidak ada
     const page = usePage();
     const flash = page.props.flash ?? {};
-    
+
     console.log("FLASH:", flash);
 
     useEffect(() => {
@@ -62,6 +61,19 @@ export default function Dashboard({
             confirmButtonColor: "#0057B8",
         });
     }, [flash.success]);
+
+    // Polling background setiap 10 detik agar data transaksi & saldo update otomatis
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({
+                only: ['transactions', 'balance', 'notifications', 'limit'],
+                preserveState: true,
+                preserveScroll: true,
+            });
+        }, 1000); // 1 detik
+
+        return () => clearInterval(interval);
+    }, []);
 
     const MenuButton = ({ onClick, emoji, label, subtitle }) => (
         <button
@@ -102,23 +114,63 @@ export default function Dashboard({
                         </div>
                     </div>
 
-                    <div className="mt-6 grid grid-cols-1 gap-4">
-                        <div className="rounded-3xl bg-white p-5 text-gray-900 shadow-sm">
-                            <p className="text-sm text-gray-500">Saldo tersedia</p>
-                            <p className="mt-4 text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
-                                <span className="text-xl sm:text-2xl font-medium">Rp&nbsp;</span>
-                                {formatBalance(balance)}
-                            </p>
-                            <p className="mt-2 text-sm text-gray-500">
-                                Dapatkan informasi transaksi terbaru di bawah.
-                            </p>
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        {/* Card Saldo & Aktifitas */}
+                        <div className="rounded-3xl bg-white p-5 text-gray-900 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <p className="text-sm text-gray-500 font-medium">Saldo Tersedia</p>
+                                <p className="mt-2 text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
+                                    <span className="text-xl sm:text-2xl font-medium">Rp&nbsp;</span>
+                                    {formatBalance(balance)}
+                                </p>
+                            </div>
+
+                            <div className="mt-5 pt-4 border-t flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs text-gray-500 font-medium">Total Transaksi Bulan Ini</p>
+                                    <p className="font-bold text-lg text-[#0057B8]">{limit.total_transactions || 0} Transaksi</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="rounded-3xl bg-blue-800/90 p-5 shadow-sm text-white">
-                            <p className="text-sm opacity-80">Aktifitas</p>
-                            <p className="mt-3 text-2xl font-bold">{transactions.length}</p>
-                            <p className="mt-2 text-sm opacity-80">Transaksi terakhir</p>
+                        {/* Card Limit Pemakaian */}
+                        <div className="rounded-3xl bg-white p-5 text-gray-900 shadow-sm flex flex-col justify-between">
+                            <div>
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <p className="text-sm text-gray-500 font-medium">
+                                            Pemakaian Limit ({new Date().toLocaleString("id-ID", { month: "short" })})
+                                        </p>
+                                        <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
+                                            <span className="text-xl">HK$</span> {Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(limit.used_hkd || 0)}
+                                        </p>
+                                        <p className="text-xs text-gray-500 font-medium mt-1">
+                                            (Rp {Intl.NumberFormat("id-ID").format(limit.used_idr || 0)})
+                                        </p>
+                                    </div>
+                                    <span className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full">
+                                        Max HK$ {Intl.NumberFormat("id-ID").format(limit.limit_hkd || 8000)}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 pt-4 border-t">
+                                <div className="flex justify-between items-end mb-2">
+                                    <p className="text-xs text-gray-500 font-medium">Telah Terpakai</p>
+                                    <p className="text-xs text-[#0057B8] font-bold">
+                                        Sisa HK$ {Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(limit.remaining_hkd || 8000)}
+                                    </p>
+                                </div>
+                                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-1000 ${(limit.percentage || 0) >= 100 ? "bg-red-500" : "bg-[#0057B8]"}`}
+                                        style={{ width: `${limit.percentage || 0}%` }}
+                                    ></div>
+                                </div>
+                            </div>
                         </div>
+
                     </div>
                 </section>
 
@@ -193,13 +245,12 @@ export default function Dashboard({
                                             Rp {Number(trx.amount).toLocaleString("id-ID")}
                                         </p>
                                         <span
-                                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                                                trx.status === "pending"
-                                                    ? "bg-yellow-100 text-yellow-800"
-                                                    : trx.status === "success"
+                                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${trx.status === "pending"
+                                                ? "bg-yellow-100 text-yellow-800"
+                                                : trx.status === "success"
                                                     ? "bg-green-100 text-green-800"
                                                     : "bg-red-100 text-red-800"
-                                            }`}
+                                                }`}
                                         >
                                             {trx.status.charAt(0).toUpperCase() + trx.status.slice(1)}
                                         </span>
@@ -219,7 +270,7 @@ export default function Dashboard({
                     onClose={() => setShowHistory(false)}
                     branches={branches}
                 />
-                
+
                 <TransactionModal show={showTransaction} onClose={() => setShowTransaction(false)} user={user} />
                 <NotificationModal
                     show={showNotification}

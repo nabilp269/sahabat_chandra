@@ -23,11 +23,11 @@ class TransactionController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'receiver_name'    => 'required|string|max:255',
-            'receiver_bank'    => 'required|string|max:255',
+            'receiver_name' => 'required|string|max:255',
+            'receiver_bank' => 'required|string|max:255',
             'receiver_account' => 'required|string|max:255',
-            'amount'           => 'required|numeric|min:1',
-            'description'      => 'nullable|string',
+            'amount' => 'required|numeric|min:1',
+            'description' => 'nullable|string',
         ]);
 
         $balance = Balance::firstOrCreate(
@@ -51,17 +51,23 @@ class TransactionController extends Controller
             ]);
         }
 
-        // Cek limit bulanan 8.000 HKD
-        $monthlyTotal = Transaction::where('user_id', Auth::id())
+        // Asumsi kurs 1 HKD = Rp 2.050 (Silakan disesuaikan dengan kurs asli/tabel kurs)
+        $kurs = 2050;
+        $limitHkd = 8000;
+        $limitIdr = $limitHkd * $kurs;
+
+        // Cek total transaksi bulanan (dalam IDR)
+        $monthlyTotalIdr = Transaction::where('user_id', Auth::id())
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->whereIn('status', ['pending', 'success'])
             ->sum('amount');
 
-        if (($monthlyTotal + $request->amount) > 8000) {
-            $remaining = max(0, 8000 - $monthlyTotal);
+        if (($monthlyTotalIdr + $request->amount) > $limitIdr) {
+            $remainingIdr = max(0, $limitIdr - $monthlyTotalIdr);
+            $remainingHkd = $remainingIdr / $kurs;
             return back()->withErrors([
-                'amount' => 'Melebihi limit bulanan 8.000 HKD. Sisa limit Anda: ' . number_format($remaining, 2) . ' HKD.',
+                'amount' => 'Melebihi limit bulanan 8.000 HKD. Sisa limit Anda: ' . number_format($remainingHkd, 2) . ' HKD.',
             ]);
         }
 
@@ -72,16 +78,16 @@ class TransactionController extends Controller
                 ->value('branches.id');
 
             Transaction::create([
-                'user_id'          => Auth::id(),
-                'branch_id'        => $branchId,
+                'user_id' => Auth::id(),
+                'branch_id' => $branchId,
                 'transaction_code' => 'TRX' . now()->format('YmdHis') . rand(100, 999),
-                'type'             => 'transfer',
-                'receiver_name'    => $request->receiver_name,
-                'receiver_bank'    => $request->receiver_bank,
+                'type' => 'transfer',
+                'receiver_name' => $request->receiver_name,
+                'receiver_bank' => $request->receiver_bank,
                 'receiver_account' => $request->receiver_account,
-                'amount'           => $request->amount,
-                'status'           => 'pending',
-                'description'      => $request->description,
+                'amount' => $request->amount,
+                'status' => 'pending',
+                'description' => $request->description,
             ]);
         });
 
@@ -154,10 +160,10 @@ class TransactionController extends Controller
 
         $adminNotifications = Notification::where(function ($q) use ($user) {
             $q->whereNull('user_id')
-              ->orWhere('user_id', $user->id);
+                ->orWhere('user_id', $user->id);
         })
-        ->latest()
-        ->get();
+            ->latest()
+            ->get();
 
         /*
         |--------------------------------------------------------------------------
@@ -193,7 +199,7 @@ class TransactionController extends Controller
                         . ' sedang menunggu persetujuan Admin.';
                 }
 
-                return (object)[
+                return (object) [
                     'id' => 'trx-' . $trx->id,
                     'title' => $title,
                     'message' => $message,

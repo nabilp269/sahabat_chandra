@@ -91,6 +91,35 @@ class DashboardController extends Controller
             ->sortByDesc('created_at')
             ->values();
 
+        $kurs = 2050; // Sama dengan di TransactionController
+        $limitHkd = 8000;
+        $limitIdr = $limitHkd * $kurs;
+
+        $monthlyTotalIdr = Transaction::where('user_id', $user->id)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->whereIn('status', ['pending', 'success'])
+            ->sum('amount');
+
+        $monthlyTotalHkd = $monthlyTotalIdr / $kurs;
+
+        $monthlyCount = Transaction::where('user_id', $user->id)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->whereIn('status', ['pending', 'success'])
+            ->count();
+
+        $limitData = [
+            'total_transactions' => $monthlyCount,
+            'used_hkd' => $monthlyTotalHkd,
+            'used_idr' => $monthlyTotalIdr,
+            'limit_hkd' => $limitHkd,
+            'limit_idr' => $limitIdr,
+            'remaining_hkd' => max(0, $limitHkd - $monthlyTotalHkd),
+            'remaining_idr' => max(0, $limitIdr - $monthlyTotalIdr),
+            'percentage' => min(100, ($monthlyTotalHkd / $limitHkd) * 100),
+        ];
+
         return Inertia::render('Dashboard/Index', [
             'user' => $user,
             'balance' => $balance->balance,
@@ -98,6 +127,7 @@ class DashboardController extends Controller
             'messages' => $messages,
             'notifications' => $notifications,
             'branches' => $branches,
+            'limit' => $limitData,
         ]);
     }
 }

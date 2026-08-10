@@ -1,6 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
 import { router } from "@inertiajs/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function History({
     transactions = [],
@@ -43,6 +43,19 @@ export default function History({
             }
         );
     };
+
+    // Auto-update polling (tanpa reload full page)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({
+                only: ['transactions', 'notifications'],
+                preserveState: true,
+                preserveScroll: true,
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <AppLayout
@@ -211,13 +224,12 @@ export default function History({
                                         </p>
 
                                         <span
-                                            className={`inline-block mt-3 px-3 py-1 rounded-full text-xs font-semibold ${
-                                                trx.status === "pending"
-                                                    ? "bg-yellow-100 text-yellow-700"
-                                                    : trx.status === "success"
+                                            className={`inline-block mt-3 px-3 py-1 rounded-full text-xs font-semibold ${trx.status === "pending"
+                                                ? "bg-yellow-100 text-yellow-700"
+                                                : trx.status === "success"
                                                     ? "bg-green-100 text-green-700"
                                                     : "bg-red-100 text-red-700"
-                                            }`}
+                                                }`}
                                         >
                                             {trx.status}
                                         </span>

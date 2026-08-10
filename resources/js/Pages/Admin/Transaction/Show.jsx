@@ -1,5 +1,6 @@
 import AdminLayout from "@/Layouts/AdminLayout";
-import { Head, useForm } from "@inertiajs/react";
+import { Head, useForm, router } from "@inertiajs/react";
+import { useEffect } from "react";
 import {
     User,
     Wallet,
@@ -9,6 +10,18 @@ import {
 } from "lucide-react";
 
 export default function Show({ transaction }) {
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({
+                only: ['transaction'],
+                preserveState: true,
+                preserveScroll: true,
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
+
     const { patch, processing } = useForm();
 
     const approve = () => {
@@ -55,10 +68,9 @@ export default function Show({ transaction }) {
                         </h2>
 
                         <span
-                            className={`px-4 py-2 rounded-full font-semibold ${
-                                statusColor[transaction.status] ??
+                            className={`px-4 py-2 rounded-full font-semibold ${statusColor[transaction.status] ??
                                 "bg-gray-100 text-gray-700"
-                            }`}
+                                }`}
                         >
                             {transaction.status}
                         </span>

@@ -19,6 +19,9 @@ import {
     Legend,
 } from "recharts";
 
+import { useEffect } from "react";
+import { router } from "@inertiajs/react";
+
 export default function Dashboard({
     users,
     transactions,
@@ -34,6 +37,23 @@ export default function Dashboard({
 
     chart = [],
 }) {
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({
+                only: [
+                    'users', 'transactions', 'forums', 'branches',
+                    'todayTransactions', 'totalAmount',
+                    'latestUsers', 'latestTransactions', 'latestForums',
+                    'chart'
+                ],
+                preserveState: true,
+                preserveScroll: true,
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
+
 
     const cards = [
         {
@@ -206,7 +226,7 @@ export default function Dashboard({
 
                                     <Legend />
 
-                                                                        <Area
+                                    <Area
                                         type="monotone"
                                         dataKey="transaksi"
                                         stroke="#2563eb"

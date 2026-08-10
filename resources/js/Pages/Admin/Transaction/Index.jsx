@@ -8,9 +8,21 @@ import {
     Clock3,
     CreditCard,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { router } from "@inertiajs/react";
 
 export default function Index({ transactions }) {
+    useEffect(() => {
+        const interval = setInterval(() => {
+            router.reload({
+                only: ['transactions'],
+                preserveState: true,
+                preserveScroll: true,
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
 
     const [search, setSearch] = useState("");
 
@@ -88,7 +100,7 @@ export default function Index({ transactions }) {
 
                     <div className="bg-blue-600 text-white px-5 py-3 rounded-2xl shadow-lg flex items-center gap-3">
 
-                        <CreditCard size={22}/>
+                        <CreditCard size={22} />
 
                         <div>
 
@@ -169,7 +181,7 @@ export default function Index({ transactions }) {
 
                         <tbody>
 
-                                                        {filteredTransactions.length > 0 ? (
+                            {filteredTransactions.length > 0 ? (
 
                                 filteredTransactions.map((trx) => (
 
