@@ -9,22 +9,12 @@ import {
     CreditCard,
     ScanLine,
 } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
-import { router } from "@inertiajs/react";
+import { useMemo, useState } from "react";
+import usePolling from "@/Hooks/usePolling";
 import BarcodeScanner from "@/Components/BarcodeScanner";
 
 export default function Index({ transactions }) {
-    useEffect(() => {
-        const interval = setInterval(() => {
-            router.reload({
-                only: ['transactions'],
-                preserveState: true,
-                preserveScroll: true,
-            });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
+    usePolling(['transactions']);
 
     const [search, setSearch] = useState("");
     const [showScanner, setShowScanner] = useState(false);
@@ -126,32 +116,32 @@ export default function Index({ transactions }) {
 
                     <div className="flex gap-3">
 
-                    <div className="relative flex-1">
+                        <div className="relative flex-1">
 
-                        <Search
-                            size={20}
-                            className="absolute left-4 top-3.5 text-gray-400"
-                        />
+                            <Search
+                                size={20}
+                                className="absolute left-4 top-3.5 text-gray-400"
+                            />
 
-                        <input
-                            type="text"
-                            placeholder="Cari nama pengirim, penerima atau ID transaksi..."
-                            value={search}
-                            onChange={(e) =>
-                                setSearch(e.target.value)
-                            }
-                            className="w-full border rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                        />
+                            <input
+                                type="text"
+                                placeholder="Cari nama pengirim, penerima atau ID transaksi..."
+                                value={search}
+                                onChange={(e) =>
+                                    setSearch(e.target.value)
+                                }
+                                className="w-full border rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
 
-                    </div>
+                        </div>
 
-                    <button
-                        onClick={() => setShowScanner(true)}
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl transition shrink-0"
-                    >
-                        <ScanLine size={20} />
-                        Scan QR
-                    </button>
+                        <button
+                            onClick={() => setShowScanner(true)}
+                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl transition shrink-0"
+                        >
+                            <ScanLine size={20} />
+                            Scan QR
+                        </button>
 
                     </div>
 

@@ -2,14 +2,11 @@ import AppLayout from "@/Layouts/AppLayout";
 import { Head, usePage } from "@inertiajs/react";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-
-
+import usePolling from "@/Hooks/usePolling";
 
 import HistoryModal from "@/Components/Popup/HistoryModal";
 import TransactionModal from "@/Components/Popup/TransactionModal";
 import NotificationModal from "@/Components/Popup/NotificationModal";
-
-import { router } from "@inertiajs/react";
 
 export default function Dashboard({
     user,
@@ -62,18 +59,8 @@ export default function Dashboard({
         });
     }, [flash.success]);
 
-    // Polling background setiap 10 detik agar data transaksi & saldo update otomatis
-    useEffect(() => {
-        const interval = setInterval(() => {
-            router.reload({
-                only: ['transactions', 'balance', 'notifications', 'limit'],
-                preserveState: true,
-                preserveScroll: true,
-            });
-        }, 1000); // 1 detik
-
-        return () => clearInterval(interval);
-    }, []);
+    // Polling background agar data transaksi & saldo update otomatis
+    usePolling(['transactions', 'balance', 'notifications', 'limit']);
 
     const MenuButton = ({ onClick, emoji, label, subtitle }) => (
         <button

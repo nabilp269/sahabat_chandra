@@ -1,21 +1,11 @@
 import AdminLayout from "@/Layouts/AdminLayout";
-import { Head, useForm, router } from "@inertiajs/react";
-import { useEffect } from "react";
+import { Head, useForm } from "@inertiajs/react";
 import { QRCodeSVG } from "qrcode.react";
 import { User, Wallet, Calendar, CheckCircle, XCircle } from "lucide-react";
+import usePolling from "@/Hooks/usePolling";
 
 export default function Show({ transaction }) {
-    useEffect(() => {
-        const interval = setInterval(() => {
-            router.reload({
-                only: ["transaction"],
-                preserveState: true,
-                preserveScroll: true,
-            });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
+    usePolling(["transaction"]);
 
     const { patch, processing } = useForm();
 

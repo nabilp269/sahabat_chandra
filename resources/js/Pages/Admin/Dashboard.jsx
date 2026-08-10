@@ -19,8 +19,7 @@ import {
     Legend,
 } from "recharts";
 
-import { useEffect } from "react";
-import { router } from "@inertiajs/react";
+import usePolling from "@/Hooks/usePolling";
 
 export default function Dashboard({
     users,
@@ -37,22 +36,12 @@ export default function Dashboard({
 
     chart = [],
 }) {
-    useEffect(() => {
-        const interval = setInterval(() => {
-            router.reload({
-                only: [
-                    'users', 'transactions', 'forums', 'branches',
-                    'todayTransactions', 'totalAmount',
-                    'latestUsers', 'latestTransactions', 'latestForums',
-                    'chart'
-                ],
-                preserveState: true,
-                preserveScroll: true,
-            });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
+    usePolling([
+        'users', 'transactions', 'forums', 'branches',
+        'todayTransactions', 'totalAmount',
+        'latestUsers', 'latestTransactions', 'latestForums',
+        'chart'
+    ]);
 
 
     const cards = [

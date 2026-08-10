@@ -1,7 +1,7 @@
 import Modal from "../Modal";
 import { usePage } from "@inertiajs/react";
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import axios from "axios";
 import Swal from "sweetalert2";
 
@@ -75,6 +75,19 @@ export default function TransactionModal({ show, onClose, user }) {
             amount: receipt.amount,
         });
 
+        const downloadQR = () => {
+            const canvas = document.getElementById("qr-canvas");
+            if (canvas) {
+                const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                const downloadLink = document.createElement("a");
+                downloadLink.href = pngUrl;
+                downloadLink.download = `QR_${receipt.transaction_code}.png`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            }
+        };
+
         return (
             <Modal show={show} onClose={handleClose}>
                 <div className="flex flex-col bg-white rounded-2xl overflow-hidden">
@@ -91,7 +104,7 @@ export default function TransactionModal({ show, onClose, user }) {
 
                     {/* QR Code */}
                     <div className="flex flex-col items-center py-6 px-5 border-b">
-                        <QRCodeSVG value={qrValue} size={180} />
+                        <QRCodeCanvas id="qr-canvas" value={qrValue} size={180} />
                         <p className="mt-4 text-xs text-slate-500">Scan QR Code</p>
                     </div>
 
@@ -131,10 +144,18 @@ export default function TransactionModal({ show, onClose, user }) {
                         </div>
                     </div>
 
-                    <div className="p-4">
+                    <div className="p-4 flex gap-3">
                         <button
+                            type="button"
+                            onClick={downloadQR}
+                            className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl font-semibold transition"
+                        >
+                            Unduh QR
+                        </button>
+                        <button
+                            type="button"
                             onClick={handleClose}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition"
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-semibold transition"
                         >
                             Selesai
                         </button>

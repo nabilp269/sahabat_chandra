@@ -1,6 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import { router } from "@inertiajs/react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import usePolling from "@/Hooks/usePolling";
 
 export default function History({
     transactions = [],
@@ -45,17 +46,7 @@ export default function History({
     };
 
     // Auto-update polling (tanpa reload full page)
-    useEffect(() => {
-        const interval = setInterval(() => {
-            router.reload({
-                only: ['transactions', 'notifications'],
-                preserveState: true,
-                preserveScroll: true,
-            });
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, []);
+    usePolling(['transactions', 'notifications']);
 
     return (
         <AppLayout
