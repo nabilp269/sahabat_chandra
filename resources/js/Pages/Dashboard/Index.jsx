@@ -10,7 +10,6 @@ import NotificationModal from "@/Components/Popup/NotificationModal";
 
 export default function Dashboard({
     user,
-    balance = 0,
     transactions = [],
     messages = [],
     notifications = [],
@@ -59,8 +58,8 @@ export default function Dashboard({
         });
     }, [flash.success]);
 
-    // Polling background agar data transaksi & saldo update otomatis
-    usePolling(['transactions', 'balance', 'notifications', 'limit']);
+    // Polling background agar data transaksi & notifikasi update otomatis
+    usePolling(['transactions', 'notifications', 'limit']);
 
     const MenuButton = ({ onClick, emoji, label, subtitle }) => (
         <button
@@ -77,10 +76,6 @@ export default function Dashboard({
             </div>
         </button>
     );
-
-    const formatBalance = (amount) => {
-        return Number(amount).toLocaleString("id-ID");
-    };
 
     return (
         <>
@@ -101,25 +96,7 @@ export default function Dashboard({
                         </div>
                     </div>
 
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                        {/* Card Saldo & Aktifitas */}
-                        <div className="rounded-3xl bg-white p-5 text-gray-900 shadow-sm flex flex-col justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500 font-medium">Saldo Tersedia</p>
-                                <p className="mt-2 text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
-                                    <span className="text-xl sm:text-2xl font-medium">Rp&nbsp;</span>
-                                    {formatBalance(balance)}
-                                </p>
-                            </div>
-
-                            <div className="mt-5 pt-4 border-t flex items-center justify-between">
-                                <div>
-                                    <p className="text-xs text-gray-500 font-medium">Total Transaksi Bulan Ini</p>
-                                    <p className="font-bold text-lg text-[#0057B8]">{limit.total_transactions || 0} Transaksi</p>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="mt-6 grid grid-cols-1 gap-4">
 
                         {/* Card Limit Pemakaian */}
                         <div className="rounded-3xl bg-white p-5 text-gray-900 shadow-sm flex flex-col justify-between">
@@ -169,7 +146,6 @@ export default function Dashboard({
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        <MenuButton emoji="💰" label="Saldo" subtitle="Lihat" />
                         <MenuButton
                             emoji="💸"
                             label="Tambah"

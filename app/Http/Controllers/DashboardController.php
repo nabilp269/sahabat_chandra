@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Balance;
 use App\Models\ForumMessage;
 use App\Models\Notification;
 use App\Models\Transaction;
@@ -14,16 +13,6 @@ class DashboardController extends Controller
     public function index(): Response
     {
         $user = auth()->user();
-
-        // Saldo
-        $balance = Balance::firstOrCreate(
-            [
-                'user_id' => $user->id,
-            ],
-            [
-                'balance' => 0,
-            ]
-        );
 
         // Cabang
         $branches = $user->branches()
@@ -129,7 +118,6 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard/Index', [
             'user' => $user,
-            'balance' => $balance->balance,
             'transactions' => $transactions,
             'messages' => $messages,
             'notifications' => $notifications,

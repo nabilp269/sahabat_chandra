@@ -153,9 +153,6 @@ Route::prefix('admin')
 
         Route::resource('users', AdminUserController::class);
 
-        Route::post('/users/{user}/topup', [AdminUserController::class, 'topUp'])
-            ->name('users.topup');
-
     });
 
             /*

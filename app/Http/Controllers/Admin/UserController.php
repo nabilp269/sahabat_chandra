@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\Balance;
 use App\Models\Branch;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -108,32 +107,6 @@ class UserController extends Controller
                 'success',
                 'Data user berhasil diperbarui.'
             );
-    }
-
-    /**
-     * Top Up Saldo
-     */
-    public function topUp(Request $request, User $user)
-    {
-        $request->validate([
-            'amount' => 'required|numeric|min:1000',
-        ]);
-
-        $balance = Balance::firstOrCreate(
-            [
-                'user_id' => $user->id,
-            ],
-            [
-                'balance' => 0,
-            ]
-        );
-
-        $balance->increment('balance', $request->amount);
-
-        return back()->with(
-            'success',
-            'Saldo berhasil ditambahkan.'
-        );
     }
 
     /**

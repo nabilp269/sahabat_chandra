@@ -5,16 +5,11 @@ import {
     Eye,
     Pencil,
     Search,
-    Wallet,
 } from "lucide-react";
 import { useState } from "react";
 
-import TopUpModal from "@/Components/Popup/TopUpModal";
-
 export default function Index({ users = [] }) {
     const [search, setSearch] = useState("");
-    const [showTopUp, setShowTopUp] = useState(false);
-    const [selectedUser, setSelectedUser] = useState(null);
 
     const filteredUsers = users.filter(
         (user) =>
@@ -136,19 +131,6 @@ export default function Index({ users = [] }) {
                                                     <Pencil size={16} />
                                                 </Link>
 
-                                                {/* Top Up hanya user biasa */}
-                                                {user.role !== "admin" && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedUser(user);
-                                                            setShowTopUp(true);
-                                                        }}
-                                                        className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg"
-                                                    >
-                                                        <Wallet size={16} />
-                                                    </button>
-                                                )}
-
                                                 {/* Delete hanya user biasa */}
                                                 {user.role !== "admin" && (
                                                     <button
@@ -171,7 +153,7 @@ export default function Index({ users = [] }) {
                             ) : (
                                 <tr>
                                     <td
-                                        colSpan="7"
+                                        colSpan="6"
                                         className="text-center py-8 text-gray-500"
                                     >
                                         Tidak ada user.
@@ -182,17 +164,6 @@ export default function Index({ users = [] }) {
                     </table>
                 </div>
             </div>
-
-            {selectedUser && (
-                <TopUpModal
-                    show={showTopUp}
-                    onClose={() => {
-                        setShowTopUp(false);
-                        setSelectedUser(null);
-                    }}
-                    user={selectedUser}
-                />
-            )}
         </AdminLayout>
     );
 }
