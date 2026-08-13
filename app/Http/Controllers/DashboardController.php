@@ -94,7 +94,7 @@ class DashboardController extends Controller
         $monthlyTotalIdr = Transaction::where('user_id', $user->id)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
-            ->whereIn('status', ['pending', 'success'])
+            ->where('status', 'success')
             ->sum('amount');
 
         $monthlyTotalHkd = $monthlyTotalIdr / $kurs;
@@ -102,7 +102,7 @@ class DashboardController extends Controller
         $monthlyCount = Transaction::where('user_id', $user->id)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
-            ->whereIn('status', ['pending', 'success'])
+            ->where('status', 'success')
             ->count();
 
         $limitData = [

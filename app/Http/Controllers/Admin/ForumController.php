@@ -47,12 +47,18 @@ class ForumController extends Controller
             $image = $request->file('image')->store('forum', 'public');
         }
 
-        ForumMessage::create([
+        $forum = ForumMessage::create([
             'user_id' => auth()->id(),
             'message' => $request->message,
             'image' => $image,
             'is_admin' => true,
         ]);
+
+        try {
+            event(new \App\Events\ForumMessageCreated($forum));
+        } catch (\Throwable $e) {
+            // ignore broadcast errors
+        }
 
         return redirect()
             ->route('admin.forum')

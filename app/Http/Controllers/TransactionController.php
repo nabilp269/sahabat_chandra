@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Balance;
 use App\Models\Branch;
 use App\Models\ForumMessage;
 use App\Models\Notification;
@@ -30,26 +29,7 @@ class TransactionController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        $balance = Balance::firstOrCreate(
-            [
-                'user_id' => Auth::id(),
-            ],
-            [
-                'balance' => 0,
-            ]
-        );
-
-        if ($balance->balance <= 0) {
-            return back()->withErrors([
-                'amount' => 'Saldo Anda habis.',
-            ]);
-        }
-
-        if ($balance->balance < $request->amount) {
-            return back()->withErrors([
-                'amount' => 'Saldo tidak mencukupi.',
-            ]);
-        }
+        // Pengecekan saldo dihilangkan agar user dapat memasukkan jumlah bebas.
 
         // Asumsi kurs 1 HKD = Rp 2.050 (Silakan disesuaikan dengan kurs asli/tabel kurs)
         $kurs = 2050;
@@ -66,9 +46,13 @@ class TransactionController extends Controller
         if (($monthlyTotalIdr + $request->amount) > $limitIdr) {
             $remainingIdr = max(0, $limitIdr - $monthlyTotalIdr);
             $remainingHkd = $remainingIdr / $kurs;
-            return back()->withErrors([
-                'amount' => 'Melebihi limit bulanan 8.000 HKD. Sisa limit Anda: ' . number_format($remainingHkd, 2) . ' HKD.',
-            ]);
+            return response()->json([
+                'errors' => [
+                    'amount' => [
+                        'Melebihi limit bulanan 8.000 HKD. Sisa limit Anda: ' . number_format($remainingHkd, 2) . ' HKD.'
+                    ],
+                ],
+            ], 422);
         }
 
         $transaction = null;
@@ -87,10 +71,18 @@ class TransactionController extends Controller
                 'receiver_bank' => $request->receiver_bank,
                 'receiver_account' => $request->receiver_account,
                 'amount' => $request->amount,
+                'expires_at' => now()->addDay(),
                 'status' => 'pending',
                 'description' => $request->description,
             ]);
         });
+
+        // Broadcast event (will use configured broadcaster if enabled)
+        try {
+            event(new \App\Events\TransactionCreated($transaction));
+        } catch (\Throwable $e) {
+            // Swallow broadcast errors to avoid breaking the API if broadcaster not configured
+        }
 
         return response()->json([
             'transaction' => $transaction->toArray(),

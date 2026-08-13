@@ -75,6 +75,8 @@ export default function TransactionModal({ show, onClose, user }) {
             amount: receipt.amount,
         });
 
+        const expiresAt = receipt.expires_at ? new Date(receipt.expires_at) : null;
+
         const downloadQR = () => {
             const canvas = document.getElementById("qr-canvas");
             if (canvas) {
@@ -142,6 +144,12 @@ export default function TransactionModal({ show, onClose, user }) {
                                 Menunggu Kasir
                             </span>
                         </div>
+                        {expiresAt && (
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Berlaku Sampai</span>
+                                <span className="font-semibold">{expiresAt.toLocaleString('id-ID')}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="p-4 flex gap-3">

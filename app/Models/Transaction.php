@@ -20,12 +20,14 @@ class Transaction extends Model
         'receiver_bank',
         'receiver_account',
         'amount',
+        'expires_at',
         'status',
         'description',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'expires_at' => 'datetime',
     ];
 
     /*

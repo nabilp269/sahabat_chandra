@@ -3,13 +3,83 @@ import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 
 export default function AuthenticatedLayout({ header, children }) {
     const user = usePage().props.auth.user;
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+
+    useEffect(() => {
+        // Subscribe to user private channel if Echo is available
+        try {
+            if (user?.id && window?.Echo) {
+                const channel = window.Echo.private(`user.${user.id}`);
+
+                channel.listen('TransactionCreated', (e) => {
+                    window.dispatchEvent(new CustomEvent('transaction.created', { detail: e.transaction }));
+                });
+
+                channel.listen('TransactionExpired', (e) => {
+                    window.dispatchEvent(new CustomEvent('transaction.expired', { detail: e.transaction }));
+                });
+
+                return () => {
+                    try {
+                        window.Echo.leave(`user.${user.id}`);
+                    } catch (err) {
+                        // ignore
+                    }
+                };
+            }
+        } catch (e) {
+            // ignore if Echo not configured
+        }
+            try {
+                // Subscribe to public 'forums' channel once per page session to avoid re-joining on every navigation
+                if (window?.Echo && !window.__forum_listener_added) {
+                    const publicChannel = window.Echo.channel('forums');
+                    publicChannel.listen('ForumMessageCreated', (e) => {
+                        window.dispatchEvent(new CustomEvent('forum.message.created', { detail: e.message }));
+                    });
+                    window.__forum_listener_added = true;
+                }
+            } catch (e) {
+                // ignore
+            }
+
+            // Register toast handler only once so it stays active across Inertia page navigations
+            if (!window.__forum_toast_handler_added) {
+                const forumHandler = (e) => {
+                    const msg = e.detail?.message ?? e.detail;
+                    if (!msg) return;
+
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-end',
+                        icon: 'info',
+                        title: 'Postingan forum baru',
+                        text: msg.message || '',
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                    });
+                };
+
+                window.addEventListener('forum.message.created', forumHandler);
+                window.__forum_toast_handler_added = true;
+            }
+
+            return () => {
+                try {
+                    window.Echo.leave(`user.${user.id}`);
+                } catch (err) {
+                    // ignore
+                }
+            };
+    }, [user?.id]);
 
     return (
         <div className="min-h-screen bg-gray-100">

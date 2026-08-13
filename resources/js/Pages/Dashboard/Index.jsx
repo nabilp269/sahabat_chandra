@@ -58,8 +58,39 @@ export default function Dashboard({
         });
     }, [flash.success]);
 
+    // Show small toast when admin posts new forum message
+    useEffect(() => {
+        const handler = (e) => {
+            const msg = e.detail?.message ?? e.detail;
+            if (!msg) return;
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'info',
+                title: 'Admin memposting di forum',
+                text: msg.message || '',
+                showConfirmButton: false,
+                timer: 5000,
+                timerProgressBar: true,
+            });
+        };
+
+        window.addEventListener('forum.message.created', handler);
+        return () => window.removeEventListener('forum.message.created', handler);
+    }, []);
+
     // Polling background agar data transaksi & notifikasi update otomatis
     usePolling(['transactions', 'notifications', 'limit']);
+
+    // Prefer server-provided limit data (accurate): used_hkd, limit_hkd, percentage
+    const usedHKD = limit.used_hkd ?? 0;
+    const limitHKD = limit.limit_hkd ?? 8000;
+    const percentage = limit.percentage ?? Math.min(100, Math.round((usedHKD / limitHKD) * 100));
+    const remainingHKD = Math.max(0, limitHKD - usedHKD);
+    const isHKDLimitExceeded = usedHKD >= limitHKD;
+
+    const balanceDisplay = user?.balance_display ?? (user?.balance ? `Rp ${Intl.NumberFormat('id-ID').format(user.balance)}` : (limit.remaining_idr ? `Rp ${Intl.NumberFormat('id-ID').format(limit.remaining_idr)}` : 'Rp 0'));
 
     const MenuButton = ({ onClick, emoji, label, subtitle }) => (
         <button
@@ -83,58 +114,44 @@ export default function Dashboard({
 
             <AppLayout messages={messages} notifications={notifications}>
                 {/* Header */}
-                <section className="bg-[#0057B8] rounded-b-3xl p-6 text-white shadow-lg">
-                    <div className="flex items-start justify-between gap-4">
+                <section className="bg-gradient-to-r from-[#0057B8] to-[#0073E6] rounded-b-3xl p-6 text-white shadow-lg">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                            <p className="text-sm opacity-80">Selamat datang,</p>
-                            <h1 className="text-2xl sm:text-3xl font-bold mt-1">
+                            <p className="text-sm opacity-90">Selamat datang,</p>
+                            <h1 className="text-2xl sm:text-3xl font-extrabold mt-1 tracking-tight">
                                 {user.name}
                             </h1>
-                            <p className="text-sm opacity-80 mt-1">
-                                Aplikasi Sahabat Chandra
-                            </p>
+                            <p className="text-sm opacity-90 mt-1">Aplikasi Sahabat Chandra</p>
                         </div>
-                    </div>
 
-                    <div className="mt-6 grid grid-cols-1 gap-4">
-
-                        {/* Card Limit Pemakaian */}
-                        <div className="rounded-3xl bg-white p-5 text-gray-900 shadow-sm flex flex-col justify-between">
-                            <div>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <p className="text-sm text-gray-500 font-medium">
-                                            Pemakaian Limit ({new Date().toLocaleString("id-ID", { month: "short" })})
-                                        </p>
-                                        <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
-                                            <span className="text-xl">HK$</span> {Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(limit.used_hkd || 0)}
-                                        </p>
-                                        <p className="text-xs text-gray-500 font-medium mt-1">
-                                            (Rp {Intl.NumberFormat("id-ID").format(limit.used_idr || 0)})
-                                        </p>
+                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:mt-0 lg:ml-6">
+                            <div className={`rounded-xl p-3 ${isHKDLimitExceeded ? 'bg-red-600/30' : 'bg-white/10'} text-white`}>
+                                <p className="text-xs opacity-90">1 Bulan - Batas Transaksi (HKD)</p>
+                                <div className="mt-2 flex items-end justify-between gap-3">
+                                    <div className="flex-1">
+                                        <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
+                                            <div
+                                                    className={`h-3 ${isHKDLimitExceeded ? 'bg-red-500' : 'bg-green-400'}`}
+                                                    style={{ width: `${Math.min(100, percentage)}%` }}
+                                                />
+                                        </div>
+                                        <div className="mt-2 flex items-center justify-between text-sm">
+                                            <span className="opacity-90">Terpakai: {Number(usedHKD).toLocaleString(undefined, {maximumFractionDigits:2})} HKD</span>
+                                            <span className="opacity-90">Sisa: {Number(remainingHKD).toLocaleString(undefined, {maximumFractionDigits:2})} HKD</span>
+                                        </div>
+                                        <div className="mt-1 text-xs opacity-80">Batas: {Number(limitHKD).toLocaleString()} HKD</div>
                                     </div>
-                                    <span className="text-xs font-bold text-blue-800 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full">
-                                        Max HK$ {Intl.NumberFormat("id-ID").format(limit.limit_hkd || 8000)}
-                                    </span>
                                 </div>
+                                {isHKDLimitExceeded && (
+                                    <p className="mt-2 text-sm text-red-200">Batas 8.000 HKD tercapai — tunggu bulan depan</p>
+                                )}
                             </div>
-
-                            <div className="mt-4 pt-4 border-t">
-                                <div className="flex justify-between items-end mb-2">
-                                    <p className="text-xs text-gray-500 font-medium">Telah Terpakai</p>
-                                    <p className="text-xs text-[#0057B8] font-bold">
-                                        Sisa HK$ {Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(limit.remaining_hkd || 8000)}
-                                    </p>
-                                </div>
-                                <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                                    <div
-                                        className={`h-full rounded-full transition-all duration-1000 ${(limit.percentage || 0) >= 100 ? "bg-red-500" : "bg-[#0057B8]"}`}
-                                        style={{ width: `${limit.percentage || 0}%` }}
-                                    ></div>
-                                </div>
+                            <div className="rounded-xl bg-white/10 p-3 text-white">
+                                <p className="text-xs opacity-90">Transaksi Pending</p>
+                                <p className="mt-1 font-semibold text-lg">{transactions.filter(t=>t.status==='pending').length}</p>
                             </div>
+                            
                         </div>
-
                     </div>
                 </section>
 
@@ -149,8 +166,20 @@ export default function Dashboard({
                         <MenuButton
                             emoji="💸"
                             label="Tambah"
-                            subtitle="Transfer"
-                            onClick={() => setShowTransaction(true)}
+                            subtitle={isHKDLimitExceeded ? 'Batas 1 bulan 8.000 HKD terlampaui' : `Transfer`}
+                            onClick={() => {
+                                if (isHKDLimitExceeded) {
+                                    Swal.fire({
+                                        icon: 'warning',
+                                        title: 'Batas Bulanan Terlampaui',
+                                        text: 'Anda sudah mencapai batas 1 bulan sebesar 8.000 HKD. Silakan tunggu bulan depan untuk melakukan transaksi.',
+                                        confirmButtonColor: '#0057B8',
+                                    });
+                                    return;
+                                }
+
+                                setShowTransaction(true);
+                            }}
                         />
                         <MenuButton
                             emoji="📄"
@@ -163,6 +192,15 @@ export default function Dashboard({
                             label="Cabang"
                             subtitle={`${branches.length} Cabang`}
                         />
+                        <div className="rounded-3xl bg-white p-4 shadow-sm border border-gray-100">
+                            <p className="text-xs text-gray-500">Kuota HKD Bulan Ini</p>
+                            <p className="mt-1 font-semibold text-lg">Terpakai: {Number(usedHKD).toLocaleString(undefined, {maximumFractionDigits:2})} HKD</p>
+                            <p className="text-sm text-gray-500 mt-1">Sisa: {Number(remainingHKD).toLocaleString(undefined, {maximumFractionDigits:2})} HKD</p>
+                            <p className="text-sm text-gray-500 mt-1">Batas: {Number(limitHKD).toLocaleString()} HKD</p>
+                            {isHKDLimitExceeded && (
+                                <p className="text-sm text-red-600 mt-1">Batas 8.000 HKD tercapai</p>
+                            )}
+                        </div>
                     </div>
                 </section>
 

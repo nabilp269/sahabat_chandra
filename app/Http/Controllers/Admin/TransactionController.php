@@ -79,24 +79,15 @@ class TransactionController extends Controller
 
         DB::transaction(function () use ($transaction) {
 
-            $balance = Balance::where(
-                'user_id',
-                $transaction->user_id
-            )->first();
-
-            if (!$balance) {
-                throw new \Exception('Saldo user tidak ditemukan.');
-            }
-
-            if ($balance->balance < $transaction->amount) {
-                throw new \Exception('Saldo user tidak mencukupi.');
-            }
-
-            // Kurangi saldo user
-            $balance->decrement(
-                'balance',
-                $transaction->amount
+            // Ambil atau buat record saldo jika belum ada. Tidak menghentikan proses
+            // meskipun saldo kurang — memungkinkan saldo menjadi negatif.
+            $balance = Balance::firstOrCreate(
+                ['user_id' => $transaction->user_id],
+                ['balance' => 0]
             );
+
+            // Kurangi saldo user (boleh menjadi negatif)
+            $balance->decrement('balance', $transaction->amount);
 
             // Update status transaksi
             $transaction->update([
