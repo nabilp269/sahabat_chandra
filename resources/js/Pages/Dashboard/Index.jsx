@@ -1,8 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
-import { Head, usePage } from "@inertiajs/react";
+import { Head, usePage, router } from "@inertiajs/react";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import usePolling from "@/Hooks/usePolling";
 
 import HistoryModal from "@/Components/Popup/HistoryModal";
 import TransactionModal from "@/Components/Popup/TransactionModal";
@@ -10,87 +9,88 @@ import NotificationModal from "@/Components/Popup/NotificationModal";
 
 export default function Dashboard({
     user,
-    transactions = [],
+    transactions: initialTransactions = [],
     messages = [],
-    notifications = [],
+    notifications: initialNotifications = [],
     branches = [],
     limit = {},
 }) {
-
     const [showHistory, setShowHistory] = useState(false);
     const [showTransaction, setShowTransaction] = useState(false);
     const [showNotification, setShowNotification] = useState(false);
+    const [transactions, setTransactions] = useState(initialTransactions);
+    const [notifications, setNotifications] = useState(initialNotifications);
 
-    // Aman walaupun flash tidak ada
     const page = usePage();
     const flash = page.props.flash ?? {};
 
-    console.log("FLASH:", flash);
-
+    // Flash SweetAlert
     useEffect(() => {
         if (!flash.success) return;
-
-        let title = "";
-        let text = "";
-
-        switch (flash.success) {
-            case "Login Berhasil":
-                title = "Login Berhasil";
-                text = "Selamat datang di Sahabat Chandra!";
-                break;
-
-            case "Registrasi Berhasil":
-                title = "Registrasi Berhasil";
-                text = "Akun berhasil dibuat. Selamat datang di Sahabat Chandra!";
-                break;
-
-            default:
-                title = "Berhasil";
-                text = flash.success;
-                break;
-        }
-
-        Swal.fire({
-            icon: "success",
-            title,
-            text,
-            confirmButtonColor: "#0057B8",
-        });
+        const map = {
+            "Login Berhasil": ["Login Berhasil", "Selamat datang di Sahabat Chandra!"],
+            "Registrasi Berhasil": ["Registrasi Berhasil", "Akun berhasil dibuat. Selamat datang di Sahabat Chandra!"],
+        };
+        const [title, text] = map[flash.success] ?? ["Berhasil", flash.success];
+        Swal.fire({ icon: "success", title, text, confirmButtonColor: "#0057B8" });
     }, [flash.success]);
 
-    // Show small toast when admin posts new forum message
+    // Echo: dengarkan status transaksi berubah (approve/reject)
     useEffect(() => {
-        const handler = (e) => {
-            const msg = e.detail?.message ?? e.detail;
-            if (!msg) return;
+        if (!window.Echo) return;
+
+        const channel = window.Echo.private(`user.${user.id}`);
+
+        channel.listen(".TransactionStatusUpdated", (e) => {
+            const updated = e.transaction;
+
+            // Update list transaksi
+            setTransactions((prev) =>
+                prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
+            );
+
+            // Tambah notifikasi baru
+            const isSuccess = updated.status === "success";
+            const newNotif = {
+                id: "trx-" + updated.id,
+                title: isSuccess ? "Transaksi Berhasil" : "Transaksi Ditolak",
+                message: isSuccess
+                    ? `Transfer sebesar Rp ${Number(updated.amount).toLocaleString("id-ID")} berhasil diproses Admin.`
+                    : `Transfer sebesar Rp ${Number(updated.amount).toLocaleString("id-ID")} ditolak Admin.`,
+                created_at: updated.updated_at,
+                type: "transaction",
+                status: updated.status,
+                transaction_code: updated.transaction_code,
+                receiver_name: updated.receiver_name,
+                receiver_bank: updated.receiver_bank,
+                receiver_account: updated.receiver_account,
+                amount: updated.amount,
+            };
+
+            setNotifications((prev) => [newNotif, ...prev]);
 
             Swal.fire({
                 toast: true,
-                position: 'top-end',
-                icon: 'info',
-                title: 'Admin memposting di forum',
-                text: msg.message || '',
+                position: "top-end",
+                icon: isSuccess ? "success" : "error",
+                title: newNotif.title,
                 showConfirmButton: false,
-                timer: 5000,
+                timer: 4000,
                 timerProgressBar: true,
             });
+        });
+
+        return () => {
+            channel.stopListening(".TransactionStatusUpdated");
+            window.Echo.leave(`user.${user.id}`);
         };
+    }, [user.id]);
 
-        window.addEventListener('forum.message.created', handler);
-        return () => window.removeEventListener('forum.message.created', handler);
-    }, []);
-
-    // Polling background agar data transaksi & notifikasi update otomatis
-    usePolling(['transactions', 'notifications', 'limit']);
-
-    // Prefer server-provided limit data (accurate): used_hkd, limit_hkd, percentage
     const usedHKD = limit.used_hkd ?? 0;
     const limitHKD = limit.limit_hkd ?? 8000;
     const percentage = limit.percentage ?? Math.min(100, Math.round((usedHKD / limitHKD) * 100));
     const remainingHKD = Math.max(0, limitHKD - usedHKD);
     const isHKDLimitExceeded = usedHKD >= limitHKD;
-
-    const balanceDisplay = user?.balance_display ?? (user?.balance ? `Rp ${Intl.NumberFormat('id-ID').format(user.balance)}` : (limit.remaining_idr ? `Rp ${Intl.NumberFormat('id-ID').format(limit.remaining_idr)}` : 'Rp 0'));
 
     const MenuButton = ({ onClick, emoji, label, subtitle }) => (
         <button
@@ -98,9 +98,7 @@ export default function Dashboard({
             onClick={onClick}
             className="flex flex-col items-center justify-center gap-2 rounded-3xl bg-white p-4 shadow-sm border border-gray-100 transition hover:shadow-md"
         >
-            <div className="bg-blue-50 text-[#0057B8] rounded-2xl p-3 text-xl">
-                {emoji}
-            </div>
+            <div className="bg-blue-50 text-[#0057B8] rounded-2xl p-3 text-xl">{emoji}</div>
             <div className="text-center">
                 <p className="text-sm font-semibold">{label}</p>
                 {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
@@ -124,23 +122,21 @@ export default function Dashboard({
                             <p className="text-sm opacity-90 mt-1">Aplikasi Sahabat Chandra</p>
                         </div>
 
-                            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:mt-0 lg:ml-6">
-                            <div className={`rounded-xl p-3 ${isHKDLimitExceeded ? 'bg-red-600/30' : 'bg-white/10'} text-white`}>
-                                <p className="text-xs opacity-90">1 Bulan - Batas Transaksi (HKD)</p>
-                                <div className="mt-2 flex items-end justify-between gap-3">
-                                    <div className="flex-1">
-                                        <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
-                                            <div
-                                                    className={`h-3 ${isHKDLimitExceeded ? 'bg-red-500' : 'bg-green-400'}`}
-                                                    style={{ width: `${Math.min(100, percentage)}%` }}
-                                                />
-                                        </div>
-                                        <div className="mt-2 flex items-center justify-between text-sm">
-                                            <span className="opacity-90">Terpakai: {Number(usedHKD).toLocaleString(undefined, {maximumFractionDigits:2})} HKD</span>
-                                            <span className="opacity-90">Sisa: {Number(remainingHKD).toLocaleString(undefined, {maximumFractionDigits:2})} HKD</span>
-                                        </div>
-                                        <div className="mt-1 text-xs opacity-80">Batas: {Number(limitHKD).toLocaleString()} HKD</div>
+                        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:mt-0 lg:ml-6">
+                            <div className={`rounded-xl p-3 ${isHKDLimitExceeded ? "bg-red-600/30" : "bg-white/10"} text-white`}>
+                                <p className="text-xs opacity-90">Batas Transaksi Bulan Ini (HKD)</p>
+                                <div className="mt-2">
+                                    <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
+                                        <div
+                                            className={`h-3 ${isHKDLimitExceeded ? "bg-red-500" : "bg-green-400"}`}
+                                            style={{ width: `${Math.min(100, percentage)}%` }}
+                                        />
                                     </div>
+                                    <div className="mt-2 flex items-center justify-between text-sm">
+                                        <span className="opacity-90">Terpakai: {Number(usedHKD).toLocaleString(undefined, { maximumFractionDigits: 2 })} HKD</span>
+                                        <span className="opacity-90">Sisa: {Number(remainingHKD).toLocaleString(undefined, { maximumFractionDigits: 2 })} HKD</span>
+                                    </div>
+                                    <div className="mt-1 text-xs opacity-80">Batas: {Number(limitHKD).toLocaleString()} HKD</div>
                                 </div>
                                 {isHKDLimitExceeded && (
                                     <p className="mt-2 text-sm text-red-200">Batas 8.000 HKD tercapai — tunggu bulan depan</p>
@@ -148,9 +144,10 @@ export default function Dashboard({
                             </div>
                             <div className="rounded-xl bg-white/10 p-3 text-white">
                                 <p className="text-xs opacity-90">Transaksi Pending</p>
-                                <p className="mt-1 font-semibold text-lg">{transactions.filter(t=>t.status==='pending').length}</p>
+                                <p className="mt-1 font-semibold text-lg">
+                                    {transactions.filter((t) => t.status === "pending").length}
+                                </p>
                             </div>
-                            
                         </div>
                     </div>
                 </section>
@@ -162,22 +159,21 @@ export default function Dashboard({
                         <span className="text-sm text-gray-500">Mudah digunakan</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                         <MenuButton
                             emoji="💸"
-                            label="Tambah"
-                            subtitle={isHKDLimitExceeded ? 'Batas 1 bulan 8.000 HKD terlampaui' : `Transfer`}
+                            label="Transfer"
+                            subtitle={isHKDLimitExceeded ? "Batas tercapai" : "Kirim uang"}
                             onClick={() => {
                                 if (isHKDLimitExceeded) {
                                     Swal.fire({
-                                        icon: 'warning',
-                                        title: 'Batas Bulanan Terlampaui',
-                                        text: 'Anda sudah mencapai batas 1 bulan sebesar 8.000 HKD. Silakan tunggu bulan depan untuk melakukan transaksi.',
-                                        confirmButtonColor: '#0057B8',
+                                        icon: "warning",
+                                        title: "Batas Bulanan Terlampaui",
+                                        text: "Anda sudah mencapai batas 8.000 HKD bulan ini.",
+                                        confirmButtonColor: "#0057B8",
                                     });
                                     return;
                                 }
-
                                 setShowTransaction(true);
                             }}
                         />
@@ -192,26 +188,16 @@ export default function Dashboard({
                             label="Cabang"
                             subtitle={`${branches.length} Cabang`}
                         />
-                        <div className="rounded-3xl bg-white p-4 shadow-sm border border-gray-100">
-                            <p className="text-xs text-gray-500">Kuota HKD Bulan Ini</p>
-                            <p className="mt-1 font-semibold text-lg">Terpakai: {Number(usedHKD).toLocaleString(undefined, {maximumFractionDigits:2})} HKD</p>
-                            <p className="text-sm text-gray-500 mt-1">Sisa: {Number(remainingHKD).toLocaleString(undefined, {maximumFractionDigits:2})} HKD</p>
-                            <p className="text-sm text-gray-500 mt-1">Batas: {Number(limitHKD).toLocaleString()} HKD</p>
-                            {isHKDLimitExceeded && (
-                                <p className="text-sm text-red-600 mt-1">Batas 8.000 HKD tercapai</p>
-                            )}
-                        </div>
                     </div>
                 </section>
 
-                {/* Transaksi */}
+                {/* Transaksi Terakhir */}
                 <section className="mt-6">
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h2 className="font-bold text-lg">Transaksi Terakhir</h2>
-                            <p className="text-sm text-gray-500">Periksa riwayat 5 transaksi terbaru</p>
+                            <p className="text-sm text-gray-500">3 transaksi terbaru</p>
                         </div>
-
                         <button
                             type="button"
                             onClick={() => router.get(route("history"))}
@@ -219,7 +205,6 @@ export default function Dashboard({
                         >
                             Lihat Semua
                         </button>
-
                     </div>
 
                     <div className="space-y-3">
@@ -233,25 +218,21 @@ export default function Dashboard({
                                         <p className="text-sm text-gray-500 truncate">
                                             {new Date(trx.created_at).toLocaleDateString("id-ID")}
                                         </p>
-                                        <h3 className="font-semibold text-base truncate">
-                                            {trx.receiver_name}
-                                        </h3>
-                                        <p className="text-sm text-gray-500 truncate">
-                                            {trx.receiver_bank}
-                                        </p>
+                                        <h3 className="font-semibold text-base truncate">{trx.receiver_name}</h3>
+                                        <p className="text-sm text-gray-500 truncate">{trx.receiver_bank}</p>
                                     </div>
-
                                     <div className="text-right">
                                         <p className="font-semibold text-red-600">
                                             Rp {Number(trx.amount).toLocaleString("id-ID")}
                                         </p>
                                         <span
-                                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${trx.status === "pending"
-                                                ? "bg-yellow-100 text-yellow-800"
-                                                : trx.status === "success"
+                                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                                trx.status === "pending"
+                                                    ? "bg-yellow-100 text-yellow-800"
+                                                    : trx.status === "success"
                                                     ? "bg-green-100 text-green-800"
                                                     : "bg-red-100 text-red-800"
-                                                }`}
+                                            }`}
                                         >
                                             {trx.status.charAt(0).toUpperCase() + trx.status.slice(1)}
                                         </span>
@@ -266,17 +247,11 @@ export default function Dashboard({
                     </div>
                 </section>
 
-                <HistoryModal
-                    show={showHistory}
-                    onClose={() => setShowHistory(false)}
-                    branches={branches}
-                />
-
+                <HistoryModal show={showHistory} onClose={() => setShowHistory(false)} branches={branches} />
                 <TransactionModal show={showTransaction} onClose={() => setShowTransaction(false)} user={user} />
                 <NotificationModal
                     show={showNotification}
                     onClose={() => setShowNotification(false)}
-                    messages={messages}
                     notifications={notifications}
                 />
             </AppLayout>

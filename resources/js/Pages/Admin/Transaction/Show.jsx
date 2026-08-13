@@ -1,13 +1,30 @@
 import AdminLayout from "@/Layouts/AdminLayout";
-import { Head, useForm } from "@inertiajs/react";
+import { Head, useForm, router } from "@inertiajs/react";
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { User, Wallet, Calendar, CheckCircle, XCircle } from "lucide-react";
-import usePolling from "@/Hooks/usePolling";
 
-export default function Show({ transaction }) {
-    usePolling(["transaction"]);
-
+export default function Show({ transaction: initial }) {
+    const [transaction, setTransaction] = useState(initial);
     const { patch, processing } = useForm();
+
+    // Echo: update status realtime saat admin approve/reject dari tab lain
+    useEffect(() => {
+        if (!window.Echo) return;
+
+        const channel = window.Echo.channel("admin.transactions");
+
+        channel.listen(".TransactionStatusUpdated", (e) => {
+            if (e.transaction.id === transaction.id) {
+                setTransaction((prev) => ({ ...prev, ...e.transaction }));
+            }
+        });
+
+        return () => {
+            channel.stopListening(".TransactionStatusUpdated");
+            window.Echo.leave("admin.transactions");
+        };
+    }, [transaction.id]);
 
     const approve = () => {
         if (confirm("Approve transaksi ini?")) {
@@ -38,7 +55,6 @@ export default function Show({ transaction }) {
     return (
         <>
             <Head title="Detail Transaksi" />
-
             <AdminLayout>
                 <div className="space-y-6">
 

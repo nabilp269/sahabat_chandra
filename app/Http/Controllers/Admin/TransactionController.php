@@ -90,9 +90,7 @@ class TransactionController extends Controller
             $balance->decrement('balance', $transaction->amount);
 
             // Update status transaksi
-            $transaction->update([
-                'status' => 'success',
-            ]);
+            $transaction->update(['status' => 'success']);
 
             // Simpan notifikasi
             Notification::create([
@@ -104,6 +102,8 @@ class TransactionController extends Controller
                     ' berhasil diproses Admin.',
             ]);
         });
+
+        event(new \App\Events\TransactionStatusUpdated($transaction->fresh()));
 
         return back()->with(
             'success',
@@ -123,15 +123,15 @@ class TransactionController extends Controller
             );
         }
 
-        $transaction->update([
-            'status' => 'failed',
-        ]);
+        $transaction->update(['status' => 'failed']);
 
         Notification::create([
             'user_id' => $transaction->user_id,
             'title' => 'Transaksi Ditolak',
             'message' => 'Transaksi Anda ditolak oleh Admin.',
         ]);
+
+        event(new \App\Events\TransactionStatusUpdated($transaction->fresh()));
 
         return back()->with(
             'success',
