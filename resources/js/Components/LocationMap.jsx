@@ -1,172 +1,163 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
-    MapContainer,
-    TileLayer,
+    GoogleMap,
+    useJsApiLoader,
     Marker,
-    Popup,
-    useMap,
-} from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+    InfoWindow,
+} from "@react-google-maps/api";
 
-const createMarkerIcon = (color, emoji) =>
-    L.divIcon({
-        className: "custom-marker",
-        html: `
-            <div style="display:flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:9999px;background:${color};color:white;border:3px solid white;box-shadow:0 15px 35px rgba(15,23,42,0.2);">
-                <span style="font-size:18px;line-height:1;">${emoji}</span>
-            </div>
-        `,
-        iconSize: [42, 42],
-        iconAnchor: [21, 42],
-        popupAnchor: [0, -40],
-    });
+const GOOGLE_MAPS_API_KEY = "AIzaSyB3wAtayHp2YycMu-Qt4pfgSW3E6oCDBws";
 
-const branchIcon = createMarkerIcon("#2563eb", "📍");
-const userIcon = createMarkerIcon("#0f766e", "🧭");
+const mapContainerStyle = { width: "100%", height: "100%" };
 
-function FitBounds({ positions }) {
-    const map = useMap();
-
-    useEffect(() => {
-        if (!positions.length) return;
-
-        const bounds = L.latLngBounds(positions);
-        map.fitBounds(bounds, {
-            padding: [70, 70],
-            maxZoom: 14,
-        });
-    }, [map, positions]);
-
-    return null;
-}
+const defaultCenter = { lat: -6.2, lng: 106.816666 };
 
 export default function LocationMap({ branches = [] }) {
-    const [position, setPosition] = useState([-6.2, 106.816666]);
+    const { isLoaded } = useJsApiLoader({
+        googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    });
+
+    const [userPos, setUserPos] = useState(null);
+    const [selected, setSelected] = useState(null);
+    const [map, setMap] = useState(null);
 
     useEffect(() => {
         if (!navigator.geolocation) return;
-
         navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                setPosition([pos.coords.latitude, pos.coords.longitude]);
-            },
+            (pos) =>
+                setUserPos({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                }),
             () => {}
         );
     }, []);
 
-    const validBranches = branches.filter(
-        (branch) =>
-            branch.latitude !== null &&
-            branch.longitude !== null &&
-            branch.latitude !== "" &&
-            branch.longitude !== ""
+    const onLoad = useCallback(
+        (mapInstance) => {
+            setMap(mapInstance);
+
+            const bounds = new window.google.maps.LatLngBounds();
+
+            if (userPos) bounds.extend(userPos);
+
+            branches.forEach((b) => {
+                if (b.latitude && b.longitude) {
+                    bounds.extend({
+                        lat: Number(b.latitude),
+                        lng: Number(b.longitude),
+                    });
+                }
+            });
+
+            if (!bounds.isEmpty()) mapInstance.fitBounds(bounds);
+        },
+        [userPos, branches]
     );
 
-    const positions = useMemo(
-        () => [
-            position,
-            ...validBranches.map((branch) => [
-                Number(branch.latitude),
-                Number(branch.longitude),
-            ]),
-        ],
-        [position, validBranches]
-    );
+    // Fit bounds saat userPos baru tersedia setelah map sudah load
+    useEffect(() => {
+        if (!map || !userPos) return;
 
-    const fallbackCenter = useMemo(() => {
-        const firstBranch = validBranches[0];
+        const bounds = new window.google.maps.LatLngBounds();
+        bounds.extend(userPos);
+        branches.forEach((b) => {
+            if (b.latitude && b.longitude) {
+                bounds.extend({
+                    lat: Number(b.latitude),
+                    lng: Number(b.longitude),
+                });
+            }
+        });
+        map.fitBounds(bounds);
+    }, [userPos, map]);
 
-        if (firstBranch) {
-            return [Number(firstBranch.latitude), Number(firstBranch.longitude)];
-        }
-
-        return position;
-    }, [position, validBranches]);
+    if (!isLoaded) {
+        return (
+            <div className="flex h-full w-full items-center justify-center bg-slate-100 rounded-[24px]">
+                <p className="text-slate-500 text-sm">Memuat peta...</p>
+            </div>
+        );
+    }
 
     return (
-        <div className="relative h-full w-full">
-            <MapContainer
-                center={fallbackCenter}
-                zoom={12}
-                scrollWheelZoom={true}
-                zoomControl={true}
-                style={{
-                    height: "100%",
-                    width: "100%",
-                }}
-                className="h-full w-full rounded-[24px] relative z-0"
-            >
-                <FitBounds positions={positions} />
-
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={userPos ?? defaultCenter}
+            zoom={12}
+            onLoad={onLoad}
+            options={{
+                streetViewControl: false,
+                mapTypeControl: false,
+                fullscreenControl: true,
+            }}
+        >
+            {/* Marker lokasi user */}
+            {userPos && (
+                <Marker
+                    position={userPos}
+                    title="Lokasi Anda"
+                    icon={{
+                        url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+                    }}
                 />
+            )}
 
-                <Marker position={position} icon={userIcon}>
-                    <Popup>
-                        <div className="space-y-2 text-sm">
-                            <p className="font-semibold text-slate-800">Lokasi Anda</p>
-                            <p className="text-slate-600">Posisi GPS saat ini</p>
-                        </div>
-                    </Popup>
-                </Marker>
-
-                {validBranches.map((branch) => (
+            {/* Marker setiap cabang */}
+            {branches
+                .filter((b) => b.latitude && b.longitude)
+                .map((branch) => (
                     <Marker
                         key={branch.id}
-                        position={[Number(branch.latitude), Number(branch.longitude)]}
-                        icon={branchIcon}
-                    >
-                        <Popup>
-                            <div className="min-w-[220px] space-y-3 text-sm text-slate-800">
-                                <div>
-                                    <p className="text-base font-semibold">{branch.name}</p>
-                                    <p className="text-xs text-slate-600">{branch.address}</p>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                                    <div className="rounded-2xl bg-slate-100 p-2">
-                                        <p className="font-semibold">Status</p>
-                                        <p>{branch.status || "-"}</p>
-                                    </div>
-                                    <div className="rounded-2xl bg-slate-100 p-2">
-                                        <p className="font-semibold">Jarak</p>
-                                        <p>{branch.distance ? `${branch.distance.toFixed(2)} km` : "-"}</p>
-                                    </div>
-                                </div>
-                                <button
-                                    className="w-full rounded-2xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                                    onClick={() =>
-                                        window.open(
-                                            `https://www.google.com/maps/dir/?api=1&destination=${branch.latitude},${branch.longitude}`,
-                                            "_blank"
-                                        )
-                                    }
-                                >
-                                    Buka Rute
-                                </button>
-                            </div>
-                        </Popup>
-                    </Marker>
+                        position={{
+                            lat: Number(branch.latitude),
+                            lng: Number(branch.longitude),
+                        }}
+                        title={branch.name}
+                        onClick={() => setSelected(branch)}
+                    />
                 ))}
-            </MapContainer>
 
-                    <div className="absolute left-4 top-4 z-20 rounded-lg bg-white p-2 shadow-md">
-                        <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-600">
-                            Peta Cabang
-                        </p>
-                        <div className="mt-2 flex items-center gap-3 text-sm text-slate-700">
-                            <div className="flex items-center gap-2">
-                                <span className="h-3.5 w-3.5 rounded-full bg-blue-600" />
-                                <span className="text-xs">Cabang</span>
+            {/* InfoWindow saat marker cabang diklik */}
+            {selected && (
+                <InfoWindow
+                    position={{
+                        lat: Number(selected.latitude),
+                        lng: Number(selected.longitude),
+                    }}
+                    onCloseClick={() => setSelected(null)}
+                >
+                    <div className="min-w-[200px] space-y-2 text-sm text-slate-800">
+                        <p className="text-base font-semibold">{selected.name}</p>
+                        <p className="text-xs text-slate-500">{selected.address}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="rounded-lg bg-slate-100 p-2">
+                                <p className="font-semibold">Status</p>
+                                <p>{selected.status || "-"}</p>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="h-3.5 w-3.5 rounded-full bg-teal-600" />
-                                <span className="text-xs">Lokasi Anda</span>
+                            <div className="rounded-lg bg-slate-100 p-2">
+                                <p className="font-semibold">Jarak</p>
+                                <p>
+                                    {selected.distance
+                                        ? `${selected.distance.toFixed(2)} km`
+                                        : "-"}
+                                </p>
                             </div>
                         </div>
+                        <button
+                            className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                            onClick={() =>
+                                window.open(
+                                    `https://www.google.com/maps/dir/?api=1&destination=${selected.latitude},${selected.longitude}`,
+                                    "_blank"
+                                )
+                            }
+                        >
+                            Buka Rute
+                        </button>
                     </div>
-        </div>
+                </InfoWindow>
+            )}
+        </GoogleMap>
     );
 }

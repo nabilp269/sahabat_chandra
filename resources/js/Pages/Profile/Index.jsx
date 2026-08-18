@@ -1,147 +1,117 @@
 import AppLayout from "@/Layouts/AppLayout";
-import { Head, Link, useForm } from "@inertiajs/react";
+import { Head, Link } from "@inertiajs/react";
 import { useState } from "react";
 import ContractFormModal from "@/Components/Popup/ContractFormModal";
+import { User, Mail, Phone, FileText, LogOut, ChevronRight, ShieldCheck } from "lucide-react";
 
-import {
-    User,
-    Mail,
-    Phone,
-    FileText,
-    LogOut,
-    ChevronRight,
-    ShieldCheck,
-    CreditCard,
-    Upload,
-} from "lucide-react";
-
-const InfoRow = ({ icon, label, value }) => (
-    <div className="flex items-center gap-4">
-        <div className="bg-gray-100 p-3 rounded-xl shrink-0">{icon}</div>
-
-        <div>
-            <p className="text-gray-500 text-sm">{label}</p>
-            <h3 className="font-semibold">{value}</h3>
-        </div>
-    </div>
-);
-
-const MenuItem = ({ onClick, href, children, danger = false }) => {
-    const base = "w-full flex justify-between items-center p-5 border-b hover:bg-gray-50 transition";
-    return href ? (
-        <Link href={href} className={base + (danger ? " text-red-600" : "")}>
-            {children}
-            <ChevronRight />
-        </Link>
-    ) : (
-        <button onClick={onClick} className={base + (danger ? " text-red-600" : "") } aria-label="menu item">
-            {children}
-            <ChevronRight />
-        </button>
-    );
-};
-
-export default function Profile({
-    user,
-    messages = [],
-    notifications = [],
-}) {
-
+export default function Profile({ user, messages = [], notifications = [] }) {
     const [showForm, setShowForm] = useState(false);
 
-    const { data, setData, post, processing } = useForm({
-        identity_type: user.identity_type || "",
-        identity_number: user.identity_number || "",
-        identity_photo: null,
-    });
-
-    const [preview, setPreview] = useState(
-        user.identity_photo
-            ? `/storage/${user.identity_photo}`
-            : null
-    );
-
-    const submitIdentity = (e) => {
-
-        e.preventDefault();
-
-        post(route("profile.identity"));
-
-    };
+    const initials = user.name ? user.name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase() : "U";
 
     return (
         <>
-
             <Head title="Profil" />
-
             <AppLayout messages={messages} notifications={notifications}>
-                <div className="max-w-3xl mx-auto px-4 pt-6">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-[#0057B8] to-[#0F6FFF] rounded-3xl p-6 text-white shadow-lg">
-                        <div className="flex items-center gap-4">
-                            <div className="w-20 h-20 rounded-full bg-white text-[#0057B8] flex items-center justify-center text-3xl font-bold shadow" aria-hidden>
-                                {user.name ? user.name.charAt(0).toUpperCase() : "U"}
-                            </div>
+                <div className="max-w-xl mx-auto px-4 pb-10">
 
+                    {/* Hero Card */}
+                    <div className="bg-gradient-to-br from-[#0057B8] to-[#0F6FFF] rounded-3xl p-6 text-white shadow-xl">
+                        <div className="flex items-center gap-5">
+                            <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold shadow-inner border border-white/30">
+                                {initials}
+                            </div>
                             <div>
-                                <h1 className="text-xl font-bold">{user.name}</h1>
-                                <p className="text-blue-100">Nasabah Aktif</p>
+                                <h1 className="text-2xl font-bold">{user.name}</h1>
+                                <p className="text-blue-100 text-sm mt-0.5">{user.email}</p>
+                                <span className="inline-block mt-2 bg-white/20 text-white text-xs px-3 py-1 rounded-full font-medium">
+                                    Nasabah Aktif
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Informasi Akun */}
-                    <div className="bg-white rounded-2xl shadow mt-6 p-5">
-                        <h2 className="font-bold text-lg mb-5">Informasi Akun</h2>
-
-                        <div className="space-y-4">
-                            <InfoRow icon={<User className="text-blue-600" />} label="Nama" value={user.name} />
-                            <InfoRow icon={<Mail className="text-green-600" />} label="Email" value={user.email} />
-                            <InfoRow icon={<Phone className="text-yellow-600" />} label="Nomor HP" value={user.phone ?? "-"} />
+                    {/* Info Akun */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 mt-5 overflow-hidden">
+                        <div className="px-5 pt-5 pb-3">
+                            <h2 className="font-bold text-slate-800">Informasi Akun</h2>
                         </div>
+
+                        {[
+                            { icon: <User size={18} className="text-blue-600" />, label: "Nama Lengkap", value: user.name },
+                            { icon: <Mail size={18} className="text-green-600" />, label: "Email", value: user.email },
+                            { icon: <Phone size={18} className="text-yellow-600" />, label: "Nomor HP", value: user.phone ?? "-" },
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-4 px-5 py-4 border-t border-gray-50">
+                                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                                    {item.icon}
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-400">{item.label}</p>
+                                    <p className="font-semibold text-slate-800 mt-0.5">{item.value}</p>
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
-                        
+                    {/* Menu */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 mt-5 overflow-hidden">
+                        <div className="px-5 pt-5 pb-3">
+                            <h2 className="font-bold text-slate-800">Pengaturan</h2>
+                        </div>
 
-{/* Menu */}
-<div className="bg-white rounded-2xl shadow mt-6">
-    <MenuItem onClick={() => setShowForm(true)}>
-        <div className="flex items-center gap-3">
-            <FileText className="text-blue-600" />
-            <span>Formulir</span>
-        </div>
-    </MenuItem>
+                        <button
+                            onClick={() => setShowForm(true)}
+                            className="w-full flex items-center justify-between px-5 py-4 border-t border-gray-50 hover:bg-gray-50 transition"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                                    <FileText size={18} className="text-blue-600" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-semibold text-slate-800">Formulir</p>
+                                    <p className="text-xs text-gray-400">Isi data identitas</p>
+                                </div>
+                            </div>
+                            <ChevronRight size={18} className="text-gray-300" />
+                        </button>
 
-    <MenuItem href="#">
-        <div className="flex items-center gap-3">
-            <ShieldCheck className="text-green-600" />
-            <span>Keamanan Akun</span>
-        </div>
-    </MenuItem>
+                        <button className="w-full flex items-center justify-between px-5 py-4 border-t border-gray-50 hover:bg-gray-50 transition">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                                    <ShieldCheck size={18} className="text-green-600" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-semibold text-slate-800">Keamanan Akun</p>
+                                    <p className="text-xs text-gray-400">Ubah password</p>
+                                </div>
+                            </div>
+                            <ChevronRight size={18} className="text-gray-300" />
+                        </button>
 
-    <Link
-        method="post"
-        href={route("logout")}
-        as="button"
-        className="w-full flex justify-between items-center p-5 text-red-600 hover:bg-red-50 transition"
-    >
-        <div className="flex items-center gap-3">
-            <LogOut />
-            <span>Keluar</span>
-        </div>
-
-        <ChevronRight />
-    </Link>
-</div>
-
+                        <Link
+                            method="post"
+                            href={route("logout")}
+                            as="button"
+                            className="w-full flex items-center justify-between px-5 py-4 border-t border-gray-50 hover:bg-red-50 transition"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                                    <LogOut size={18} className="text-red-600" />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-semibold text-red-600">Keluar</p>
+                                    <p className="text-xs text-red-300">Logout dari akun</p>
+                                </div>
+                            </div>
+                            <ChevronRight size={18} className="text-red-300" />
+                        </Link>
                     </div>
-                </AppLayout>
 
-<ContractFormModal
-    show={showForm}
-    onClose={() => setShowForm(false)}
-/>
+                </div>
+            </AppLayout>
 
-</>
-);
-}   
+            <ContractFormModal show={showForm} onClose={() => setShowForm(false)} />
+        </>
+    );
+}
