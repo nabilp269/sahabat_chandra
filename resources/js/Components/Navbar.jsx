@@ -61,13 +61,14 @@
 
 import { Bell, Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import NotificationModal from "@/Components/Popup/NotificationModal";
 
 export default function Navbar({
     messages = [],
     notifications = [],
 }) {
+    const { url } = usePage();
     const [showNotification, setShowNotification] = useState(false);
     const [mobileMenu, setMobileMenu] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
@@ -109,9 +110,7 @@ export default function Navbar({
     return (
         <>
             <header className="sticky top-0 z-50 bg-white shadow-sm border-b border-gray-200">
-
                 <div className="max-w-7xl mx-auto h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-
                     {/* Logo */}
                     <Link
                         href={route("dashboard")}
@@ -120,12 +119,10 @@ export default function Navbar({
                         <div className="w-10 h-10 rounded-xl bg-[#0057B8] flex items-center justify-center text-white font-bold text-lg shadow">
                             SC
                         </div>
-
                         <div>
                             <h1 className="text-lg font-bold text-gray-900">
                                 Sahabat Chandra
                             </h1>
-
                             <p className="text-xs text-gray-500">
                                 Money Transfer
                             </p>
@@ -135,29 +132,33 @@ export default function Navbar({
                     {/* Desktop Menu */}
                     {!isMobile && (
                         <nav className="flex items-center gap-8">
-
-                            {menus.map((menu) => (
-                                <Link
-                                    key={menu.name}
-                                    href={menu.route}
-                                    className="text-gray-600 hover:text-[#0057B8] font-medium transition"
-                                >
-                                    {menu.name}
-                                </Link>
-                            ))}
-
+                            {menus.map((menu) => {
+                                const active =
+                                    url === new URL(menu.route).pathname;
+                                return (
+                                    <Link
+                                        key={menu.name}
+                                        href={menu.route}
+                                        className={`py-5 text-gray-600 hover:text-[#0057B8] font-medium ${
+                                            active
+                                                ? "text-[#0057B8] border-b-2 border-[#0057B8]"
+                                                : "border-b-2 border-transparent"
+                                        }`}
+                                    >
+                                        {menu.name}
+                                    </Link>
+                                );
+                            })}
                         </nav>
                     )}
 
                     {/* Right */}
                     <div className="flex items-center gap-3">
-
                         <button
                             onClick={() => setShowNotification(true)}
                             className="relative w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
                         >
                             <Bell size={20} />
-
                             {notifications.length > 0 && (
                                 <>
                                     <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
@@ -165,46 +166,44 @@ export default function Navbar({
                                 </>
                             )}
                         </button>
-
                         <div className="hidden sm:flex md:hidden">
                             <button
                                 onClick={() => setMobileMenu(!mobileMenu)}
                                 className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center"
                             >
-                                {mobileMenu ? <X size={22} /> : <Menu size={22} />}
+                                {mobileMenu ? (
+                                    <X size={22} />
+                                ) : (
+                                    <Menu size={22} />
+                                )}
                             </button>
                         </div>
-
                     </div>
-
                 </div>
 
                 {/* Mobile Menu */}
                 {isMobile && mobileMenu && (
-
                     <div className="border-t bg-white">
-
                         <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col">
-
-                            {menus.map((menu) => (
-                                <Link
-                                    key={menu.name}
-                                    href={menu.route}
-                                    onClick={() =>
-                                        setMobileMenu(false)
-                                    }
-                                    className="py-3 text-gray-700 hover:text-[#0057B8] font-medium"
-                                >
-                                    {menu.name}
-                                </Link>
-                            ))}
-
+                            {menus.map((menu) => {
+                                const active =
+                                    url === new URL(menu.route).pathname;
+                                return (
+                                    <Link
+                                        key={menu.name}
+                                        href={menu.route}
+                                        onClick={() => setMobileMenu(false)}
+                                        className={`py-3 text-gray-700 hover:text-[#0057B8] font-medium ${
+                                            active ? "text-[#0057B8]" : ""
+                                        }`}
+                                    >
+                                        {menu.name}
+                                    </Link>
+                                );
+                            })}
                         </div>
-
                     </div>
-
                 )}
-
             </header>
 
             <NotificationModal

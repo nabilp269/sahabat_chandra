@@ -121,7 +121,7 @@ export default function BottomNavigation() {
                                 <Link
                                     key={menu.name}
                                     href={menu.href}
-                                    className={`flex flex-col items-center justify-center transition ${
+                                    className={`flex flex-col items-center justify-center ${
                                         active
                                             ? "text-[#0057B8] font-semibold"
                                             : "text-gray-500 hover:text-[#0057B8]"

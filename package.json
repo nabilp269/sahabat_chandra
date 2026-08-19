@@ -27,6 +27,7 @@
     },
     "dependencies": {
         "@heroicons/react": "^2.2.0",
+        "@maptiler/leaflet-maptilersdk": "^4.1.1",
         "@react-google-maps/api": "^2.20.8",
         "@zxing/browser": "^0.2.1",
         "@zxing/library": "^0.23.0",
