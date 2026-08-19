@@ -6,7 +6,7 @@ import {
     InfoWindow,
 } from "@react-google-maps/api";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyB3wAtayHp2YycMu-Qt4pfgSW3E6oCDBws";
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const mapContainerStyle = { width: "100%", height: "100%" };
 
