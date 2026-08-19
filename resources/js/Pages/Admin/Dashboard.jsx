@@ -400,30 +400,28 @@ export default function Dashboard({
 
                                 latestTrx.map((trx) => (
 
-                                    latestTransactions.map((trx) => (
+                                    <div
+                                        key={trx.id}
+                                        className="border rounded-2xl p-3 mb-3 hover:bg-gray-50"
+                                    >
 
-                                        <div
-                                            key={trx.id}
-                                            className="border rounded-2xl p-3 mb-3 hover:bg-gray-50"
-                                        >
+                                        <p className="font-semibold">
+                                            {trx.user?.name ?? "-"}
+                                        </p>
 
-                                            <p className="font-semibold">
-                                                {trx.user?.name ?? "-"}
-                                            </p>
+                                        <p className="text-sm text-gray-500">
+                                            ID : {trx.id}
+                                        </p>
 
-                                            <p className="text-sm text-gray-500">
-                                                ID : {trx.id}
-                                            </p>
+                                        <p className="text-xs text-gray-400">
+                                            {new Date(trx.created_at).toLocaleString("id-ID")}
+                                        </p>
 
-                                            <p className="text-xs text-gray-400">
-                                                {new Date(trx.created_at).toLocaleString("id-ID")}
-                                            </p>
+                                    </div>
 
-                                        </div>
+                                ))
 
-                                    ))
-
-                                ) : (
+                            ) : (
 
                                 <p className="text-gray-400">
                                     Belum ada transaksi.
