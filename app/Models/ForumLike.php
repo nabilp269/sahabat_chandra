@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ForumLike extends Model
 {
+    protected $table = 'forum_likes';
+
     protected $fillable = [
         'user_id',
         'forum_message_id',
@@ -19,6 +21,9 @@ class ForumLike extends Model
 
     public function forumMessage(): BelongsTo
     {
-        return $this->belongsTo(ForumMessage::class);
+        return $this->belongsTo(
+            ForumMessage::class,
+            'forum_message_id'
+        );
     }
 }

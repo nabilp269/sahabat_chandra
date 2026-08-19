@@ -5,33 +5,104 @@ namespace App\Events;
 use App\Models\ForumMessage;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Broadcasting\PresenceChannel;
-use Illuminate\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class ForumMessageCreated implements ShouldBroadcast
+class ForumMessageCreated implements ShouldBroadcastNow
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    use Dispatchable;
+    use InteractsWithSockets;
+    use SerializesModels;
 
-    public ForumMessage $message;
+    /**
+     * Data postingan forum.
+     */
+    public array $message;
 
-    public function __construct(ForumMessage $message)
+    /**
+     * Buat event.
+     */
+    public function __construct(ForumMessage $forumMessage)
     {
-        $this->message = $message;
+        /*
+        |--------------------------------------------------------------------------
+        | Ambil data lengkap postingan
+        |--------------------------------------------------------------------------
+        */
+
+        $forumMessage->load([
+            'user',
+            'likes' => function ($query) {
+                $query->select(
+                    'id',
+                    'user_id',
+                    'forum_message_id'
+                );
+            },
+            'comments' => function ($query) {
+                $query
+                    ->with('user')
+                    ->latest();
+            },
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Hitung jumlah like & komentar
+        |--------------------------------------------------------------------------
+        */
+
+        $forumMessage->loadCount([
+            'likes',
+            'comments',
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Kirim sebagai array
+        |--------------------------------------------------------------------------
+        |
+        | Ini lebih aman untuk React/Echo daripada mengirim object
+        | Eloquent secara langsung.
+        |
+        */
+
+        $this->message = $forumMessage->toArray();
     }
 
-    public function broadcastOn(): Channel
+    /**
+     * Channel yang digunakan.
+     *
+     * Public channel:
+     *
+     * forums
+     *
+     * Jadi Admin dan User yang membuka forum
+     * sama-sama bisa menerima event.
+     */
+    public function broadcastOn(): array
     {
-        return new Channel('forums');
+        return [
+            new Channel('forums'),
+        ];
     }
 
+    /**
+     * Nama event yang diterima Echo.
+     */
+    public function broadcastAs(): string
+    {
+        return 'forum.message.created';
+    }
+
+    /**
+     * Data yang dikirim melalui Reverb.
+     */
     public function broadcastWith(): array
     {
         return [
-            'message' => $this->message->toArray(),
+            'message' => $this->message,
         ];
     }
 }

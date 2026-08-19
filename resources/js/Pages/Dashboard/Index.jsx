@@ -1,6 +1,6 @@
 import AppLayout from "@/Layouts/AppLayout";
-import { Head, usePage, router } from "@inertiajs/react";
-import { useState, useEffect } from "react";
+import { Head, usePage } from "@inertiajs/react";
+import { useState, useEffect, useCallback } from "react";
 import Swal from "sweetalert2";
 
 import HistoryModal from "@/Components/Popup/HistoryModal";
@@ -35,7 +35,29 @@ export default function Dashboard({
         Swal.fire({ icon: "success", title, text, confirmButtonColor: "#0057B8" });
     }, [flash.success]);
 
-    // Echo: dengarkan status transaksi berubah (approve/reject)
+    // Callback: user buat transaksi baru → langsung update state tanpa reload
+    const handleTransactionCreated = useCallback((trx) => {
+        // Tambah ke daftar transaksi (simpan maks 3 terbaru)
+        setTransactions((prev) => [trx, ...prev].slice(0, 3));
+
+        // Tambah notifikasi pending
+        const pendingNotif = {
+            id: "trx-" + trx.id,
+            title: "Menunggu Persetujuan",
+            message: `Transfer sebesar Rp ${Number(trx.amount).toLocaleString("id-ID")} sedang menunggu persetujuan Admin.`,
+            created_at: trx.created_at,
+            type: "transaction",
+            status: "pending",
+            transaction_code: trx.transaction_code,
+            receiver_name: trx.receiver_name,
+            receiver_bank: trx.receiver_bank,
+            receiver_account: trx.receiver_account,
+            amount: trx.amount,
+        };
+        setNotifications((prev) => [pendingNotif, ...prev]);
+    }, []);
+
+    // Echo: dengarkan status transaksi berubah (approve/reject) real-time
     useEffect(() => {
         if (!window.Echo) return;
 
@@ -49,7 +71,7 @@ export default function Dashboard({
                 prev.map((t) => (t.id === updated.id ? { ...t, ...updated } : t))
             );
 
-            // Tambah notifikasi baru
+            // Ganti notifikasi pending lama dengan status baru
             const isSuccess = updated.status === "success";
             const newNotif = {
                 id: "trx-" + updated.id,
@@ -67,7 +89,11 @@ export default function Dashboard({
                 amount: updated.amount,
             };
 
-            setNotifications((prev) => [newNotif, ...prev]);
+            // Hapus notif pending lama, tambah notif status baru di atas
+            setNotifications((prev) => [
+                newNotif,
+                ...prev.filter((n) => n.id !== "trx-" + updated.id),
+            ]);
 
             Swal.fire({
                 toast: true,
@@ -226,13 +252,12 @@ export default function Dashboard({
                                             Rp {Number(trx.amount).toLocaleString("id-ID")}
                                         </p>
                                         <span
-                                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                                                trx.status === "pending"
-                                                    ? "bg-yellow-100 text-yellow-800"
-                                                    : trx.status === "success"
+                                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${trx.status === "pending"
+                                                ? "bg-yellow-100 text-yellow-800"
+                                                : trx.status === "success"
                                                     ? "bg-green-100 text-green-800"
                                                     : "bg-red-100 text-red-800"
-                                            }`}
+                                                }`}
                                         >
                                             {trx.status.charAt(0).toUpperCase() + trx.status.slice(1)}
                                         </span>
@@ -248,7 +273,7 @@ export default function Dashboard({
                 </section>
 
                 <HistoryModal show={showHistory} onClose={() => setShowHistory(false)} branches={branches} />
-                <TransactionModal show={showTransaction} onClose={() => setShowTransaction(false)} user={user} />
+                <TransactionModal show={showTransaction} onClose={() => setShowTransaction(false)} user={user} onTransactionCreated={handleTransactionCreated} />
                 <NotificationModal
                     show={showNotification}
                     onClose={() => setShowNotification(false)}

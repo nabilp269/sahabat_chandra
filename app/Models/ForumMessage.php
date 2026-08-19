@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ForumMessage extends Model
 {
+    protected $table = 'forum_messages';
+
     protected $fillable = [
         'user_id',
         'message',
@@ -19,8 +21,6 @@ class ForumMessage extends Model
         'is_admin' => 'boolean',
     ];
 
-    protected $withCount = ['likes', 'comments'];
-
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -28,16 +28,17 @@ class ForumMessage extends Model
 
     public function likes(): HasMany
     {
-        return $this->hasMany(ForumLike::class);
+        return $this->hasMany(
+            ForumLike::class,
+            'forum_message_id'
+        );
     }
 
     public function comments(): HasMany
     {
-        return $this->hasMany(ForumComment::class);
-    }
-
-    public function isLikedBy($userId): bool
-    {
-        return $this->likes()->where('user_id', $userId)->exists();
+        return $this->hasMany(
+            ForumComment::class,
+            'forum_message_id'
+        );
     }
 }

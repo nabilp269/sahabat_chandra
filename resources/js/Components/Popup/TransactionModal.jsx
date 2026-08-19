@@ -1,11 +1,11 @@
 import Modal from "../Modal";
-import { usePage } from "@inertiajs/react";
+import { usePage, router } from "@inertiajs/react";
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import axios from "axios";
 import Swal from "sweetalert2";
 
-export default function TransactionModal({ show, onClose, user }) {
+export default function TransactionModal({ show, onClose, user, onTransactionCreated }) {
     const { props } = usePage();
     const [receipt, setReceipt] = useState(null);
     const [processing, setProcessing] = useState(false);
@@ -32,7 +32,8 @@ export default function TransactionModal({ show, onClose, user }) {
 
         try {
             const res = await axios.post(route("transaction.store"), form);
-            setReceipt(res.data.transaction);
+            const trx = res.data.transaction;
+            setReceipt(trx);
             setForm({
                 receiver_name: "",
                 receiver_bank: "",
@@ -40,6 +41,11 @@ export default function TransactionModal({ show, onClose, user }) {
                 amount: "",
                 description: "",
             });
+
+            // Langsung update parent state (Dashboard) tanpa reload
+            if (onTransactionCreated) {
+                onTransactionCreated(trx);
+            }
         } catch (err) {
             if (err.response?.status === 422) {
                 const errs = err.response.data.errors ?? {};

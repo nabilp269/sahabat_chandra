@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ForumComment extends Model
 {
+    protected $table = 'forum_comments';
+
     protected $fillable = [
         'user_id',
         'forum_message_id',
@@ -20,6 +22,9 @@ class ForumComment extends Model
 
     public function forumMessage(): BelongsTo
     {
-        return $this->belongsTo(ForumMessage::class);
+        return $this->belongsTo(
+            ForumMessage::class,
+            'forum_message_id'
+        );
     }
 }

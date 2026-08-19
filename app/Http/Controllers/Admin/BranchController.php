@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\User;
+use App\Events\BranchChanged;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -16,7 +17,9 @@ class BranchController extends Controller
     public function index()
     {
         return Inertia::render('Admin/Branch/Index', [
-            'branches' => Branch::latest()->get(),
+            'branches' => Branch::with('users')
+                ->latest()
+                ->get(),
         ]);
     }
 
@@ -35,11 +38,18 @@ class BranchController extends Controller
             'close_time' => ['required'],
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | BUAT CABANG
+        |--------------------------------------------------------------------------
+        */
+
         $branch = Branch::create($validated);
 
         /*
         |--------------------------------------------------------------------------
         | MANY TO MANY
+        |--------------------------------------------------------------------------
         | Cabang baru otomatis dimiliki semua user
         |--------------------------------------------------------------------------
         */
@@ -52,6 +62,33 @@ class BranchController extends Controller
             ]);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | LOAD DATA RELATION
+        |--------------------------------------------------------------------------
+        | Penting supaya data yang dikirim ke Reverb lengkap.
+        |--------------------------------------------------------------------------
+        */
+
+        $branch->load('users');
+
+        /*
+        |--------------------------------------------------------------------------
+        | BROADCAST REALTIME
+        |--------------------------------------------------------------------------
+        */
+
+        event(new BranchChanged(
+            branch: $branch,
+            action: 'created'
+        ));
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSE ADMIN
+        |--------------------------------------------------------------------------
+        */
+
         return redirect()
             ->route('branch.index')
             ->with('success', 'Cabang berhasil ditambahkan.');
@@ -63,7 +100,7 @@ class BranchController extends Controller
     public function edit(Branch $branch)
     {
         return Inertia::render('Admin/Branch/Edit', [
-            'branch' => $branch,
+            'branch' => $branch->load('users'),
         ]);
     }
 
@@ -82,7 +119,38 @@ class BranchController extends Controller
             'close_time' => ['required'],
         ]);
 
+        /*
+        |--------------------------------------------------------------------------
+        | UPDATE
+        |--------------------------------------------------------------------------
+        */
+
         $branch->update($validated);
+
+        /*
+        |--------------------------------------------------------------------------
+        | LOAD RELATION TERBARU
+        |--------------------------------------------------------------------------
+        */
+
+        $branch->load('users');
+
+        /*
+        |--------------------------------------------------------------------------
+        | BROADCAST REALTIME
+        |--------------------------------------------------------------------------
+        */
+
+        event(new BranchChanged(
+            branch: $branch,
+            action: 'updated'
+        ));
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSE ADMIN
+        |--------------------------------------------------------------------------
+        */
 
         return redirect()
             ->route('branch.index')
@@ -94,11 +162,49 @@ class BranchController extends Controller
      */
     public function destroy(Branch $branch)
     {
-        // Hapus semua relasi user ↔ cabang
+        /*
+        |--------------------------------------------------------------------------
+        | SIMPAN ID SEBELUM DELETE
+        |--------------------------------------------------------------------------
+        */
+
+        $branchId = $branch->id;
+
+        /*
+        |--------------------------------------------------------------------------
+        | HAPUS RELASI USER ↔ CABANG
+        |--------------------------------------------------------------------------
+        */
+
         $branch->users()->detach();
 
-        // Hapus cabang
+        /*
+        |--------------------------------------------------------------------------
+        | HAPUS CABANG
+        |--------------------------------------------------------------------------
+        */
+
         $branch->delete();
+
+        /*
+        |--------------------------------------------------------------------------
+        | BROADCAST REALTIME
+        |--------------------------------------------------------------------------
+        | Untuk delete kita kirim ID saja karena record sudah dihapus.
+        |--------------------------------------------------------------------------
+        */
+
+        event(new BranchChanged(
+            branch: null,
+            action: 'deleted',
+            branchId: $branchId
+        ));
+
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSE ADMIN
+        |--------------------------------------------------------------------------
+        */
 
         return redirect()
             ->route('branch.index')

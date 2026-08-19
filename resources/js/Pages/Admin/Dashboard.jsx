@@ -1,4 +1,5 @@
 import AdminLayout from "@/Layouts/AdminLayout";
+import { useState, useEffect } from "react";
 import {
     Users,
     MessageCircle,
@@ -19,29 +20,53 @@ import {
     Legend,
 } from "recharts";
 
-import usePolling from "@/Hooks/usePolling";
-
 export default function Dashboard({
     users,
-    transactions,
+    transactions: initialTransactions,
     forums,
     branches,
 
-    todayTransactions,
-    totalAmount,
+    todayTransactions: initialTodayTransactions,
+    totalAmount: initialTotalAmount,
 
     latestUsers = [],
-    latestTransactions = [],
+    latestTransactions: initialLatestTransactions = [],
     latestForums = [],
 
     chart = [],
 }) {
-    usePolling([
-        'users', 'transactions', 'forums', 'branches',
-        'todayTransactions', 'totalAmount',
-        'latestUsers', 'latestTransactions', 'latestForums',
-        'chart'
-    ]);
+    const [transactionCount, setTransactionCount] = useState(initialTransactions);
+    const [todayCount, setTodayCount] = useState(initialTodayTransactions);
+    const [totalAmt, setTotalAmt] = useState(initialTotalAmount);
+    const [latestTrx, setLatestTrx] = useState(initialLatestTransactions);
+
+    // Echo: real-time update saat ada transaksi baru atau status berubah
+    useEffect(() => {
+        if (!window.Echo) return;
+
+        const channel = window.Echo.private("admin.transactions");
+
+        channel.listen(".TransactionCreated", (e) => {
+            const trx = e.transaction;
+            setTransactionCount((prev) => prev + 1);
+            setTodayCount((prev) => prev + 1);
+            setTotalAmt((prev) => Number(prev) + Number(trx.amount));
+            setLatestTrx((prev) => [trx, ...prev].slice(0, 5));
+        });
+
+        channel.listen(".TransactionStatusUpdated", (e) => {
+            const trx = e.transaction;
+            setLatestTrx((prev) =>
+                prev.map((t) => (t.id === trx.id ? { ...t, ...trx } : t))
+            );
+        });
+
+        return () => {
+            channel.stopListening(".TransactionCreated");
+            channel.stopListening(".TransactionStatusUpdated");
+            window.Echo.leave("admin.transactions");
+        };
+    }, []);
 
 
     const cards = [
@@ -65,7 +90,7 @@ export default function Dashboard({
         },
         {
             title: "Transaksi",
-            total: transactions,
+            total: transactionCount,
             icon: CreditCard,
             color: "from-red-500 to-red-700",
         },
@@ -256,7 +281,7 @@ export default function Dashboard({
                                 </p>
 
                                 <h2 className="text-3xl font-bold text-blue-700 mt-2">
-                                    Rp {Number(totalAmount).toLocaleString("id-ID")}
+                                    Rp {Number(totalAmt).toLocaleString("id-ID")}
                                 </h2>
 
                             </div>
@@ -268,7 +293,7 @@ export default function Dashboard({
                                 </p>
 
                                 <h2 className="text-3xl font-bold text-green-700 mt-2">
-                                    {todayTransactions}
+                                    {todayCount}
                                 </h2>
 
                             </div>
@@ -371,32 +396,34 @@ export default function Dashboard({
                                 💳 Transaksi
                             </h3>
 
-                            {latestTransactions.length ? (
+                            {latestTrx.length ? (
 
-                                latestTransactions.map((trx) => (
+                                latestTrx.map((trx) => (
 
-                                    <div
-                                        key={trx.id}
-                                        className="border rounded-2xl p-3 mb-3 hover:bg-gray-50"
-                                    >
+                                    latestTransactions.map((trx) => (
 
-                                        <p className="font-semibold">
-                                            {trx.user?.name ?? "-"}
-                                        </p>
+                                        <div
+                                            key={trx.id}
+                                            className="border rounded-2xl p-3 mb-3 hover:bg-gray-50"
+                                        >
 
-                                        <p className="text-sm text-gray-500">
-                                            ID : {trx.id}
-                                        </p>
+                                            <p className="font-semibold">
+                                                {trx.user?.name ?? "-"}
+                                            </p>
 
-                                        <p className="text-xs text-gray-400">
-                                            {new Date(trx.created_at).toLocaleString("id-ID")}
-                                        </p>
+                                            <p className="text-sm text-gray-500">
+                                                ID : {trx.id}
+                                            </p>
 
-                                    </div>
+                                            <p className="text-xs text-gray-400">
+                                                {new Date(trx.created_at).toLocaleString("id-ID")}
+                                            </p>
 
-                                ))
+                                        </div>
 
-                            ) : (
+                                    ))
+
+                                ) : (
 
                                 <p className="text-gray-400">
                                     Belum ada transaksi.
