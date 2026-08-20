@@ -181,7 +181,7 @@ const defaultCenter = [-6.2, 106.816666];
 
 /*
 |--------------------------------------------------------------------------
-| Icon Leaflet
+| ICON CABANG
 |--------------------------------------------------------------------------
 */
 
@@ -200,7 +200,7 @@ const branchIcon = new L.Icon({
 
 /*
 |--------------------------------------------------------------------------
-| Icon lokasi user
+| ICON LOKASI USER
 |--------------------------------------------------------------------------
 */
 
@@ -224,7 +224,7 @@ const userIcon = new L.DivIcon({
 
 /*
 |--------------------------------------------------------------------------
-| Auto Fit Map
+| AUTO FIT MAP
 |--------------------------------------------------------------------------
 */
 
@@ -239,7 +239,12 @@ function FitBounds({ branches, userPos }) {
         }
 
         branches.forEach((branch) => {
-            if (branch.latitude && branch.longitude) {
+            if (
+                branch.latitude !== null &&
+                branch.latitude !== undefined &&
+                branch.longitude !== null &&
+                branch.longitude !== undefined
+            ) {
                 points.push([
                     Number(branch.latitude),
                     Number(branch.longitude),
@@ -247,15 +252,33 @@ function FitBounds({ branches, userPos }) {
             }
         });
 
+        /*
+        |--------------------------------------------------------------
+        | Tidak ada titik
+        |--------------------------------------------------------------
+        */
+
         if (points.length === 0) {
             map.setView(defaultCenter, 12);
             return;
         }
 
+        /*
+        |--------------------------------------------------------------
+        | Hanya satu titik
+        |--------------------------------------------------------------
+        */
+
         if (points.length === 1) {
             map.setView(points[0], 14);
             return;
         }
+
+        /*
+        |--------------------------------------------------------------
+        | Banyak titik
+        |--------------------------------------------------------------
+        */
 
         const bounds = L.latLngBounds(points);
 
@@ -269,7 +292,7 @@ function FitBounds({ branches, userPos }) {
 
 /*
 |--------------------------------------------------------------------------
-| Location Map
+| LOCATION MAP
 |--------------------------------------------------------------------------
 */
 
@@ -279,7 +302,7 @@ export default function LocationMap({ branches = [] }) {
 
     /*
     |--------------------------------------------------------------------------
-    | Ambil lokasi user
+    | AMBIL LOKASI USER
     |--------------------------------------------------------------------------
     */
 
@@ -299,7 +322,12 @@ export default function LocationMap({ branches = [] }) {
                 setLocationError(false);
             },
 
-            () => {
+            (error) => {
+                console.warn(
+                    "Lokasi user tidak dapat diakses:",
+                    error.message
+                );
+
                 setLocationError(true);
             },
 
@@ -313,7 +341,7 @@ export default function LocationMap({ branches = [] }) {
 
     /*
     |--------------------------------------------------------------------------
-    | Filter cabang yang punya koordinat
+    | FILTER CABANG VALID
     |--------------------------------------------------------------------------
     */
 
@@ -329,16 +357,15 @@ export default function LocationMap({ branches = [] }) {
 
     /*
     |--------------------------------------------------------------------------
-    | URL Tile MapTiler
+    | MAPTILER TILE URL
     |--------------------------------------------------------------------------
     */
 
-    const tileUrl =
-        `https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=${MAPTILER_API_KEY}`;
+    const tileUrl = `https://api.maptiler.com/maps/streets-v4/{z}/{x}/{y}.png?key=${MAPTILER_API_KEY}`;
 
     /*
     |--------------------------------------------------------------------------
-    | Kalau API key belum ada
+    | CEK API KEY
     |--------------------------------------------------------------------------
     */
 
@@ -366,18 +393,28 @@ export default function LocationMap({ branches = [] }) {
                 className="h-full w-full"
                 scrollWheelZoom={true}
             >
+                {/* ======================================================
+                    MAPTILER
+                ====================================================== */}
+
                 <TileLayer
                     url={tileUrl}
-                    attribution='&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors'
+                    attribution='&copy; <a href="https://www.maptiler.com/copyright/" target="_blank" rel="noreferrer">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors'
                     maxZoom={22}
                 />
+
+                {/* ======================================================
+                    AUTO FIT
+                ====================================================== */}
 
                 <FitBounds
                     branches={validBranches}
                     userPos={userPos}
                 />
 
-                {/* Lokasi user */}
+                {/* ======================================================
+                    LOKASI USER
+                ====================================================== */}
 
                 {userPos && (
                     <Marker
@@ -398,7 +435,9 @@ export default function LocationMap({ branches = [] }) {
                     </Marker>
                 )}
 
-                {/* Marker cabang */}
+                {/* ======================================================
+                    MARKER CABANG
+                ====================================================== */}
 
                 {validBranches.map((branch) => {
                     const latitude = Number(branch.latitude);
@@ -412,24 +451,40 @@ export default function LocationMap({ branches = [] }) {
                         >
                             <Popup>
                                 <div className="min-w-[220px]">
+                                    {/* NAMA */}
+
                                     <h3 className="text-base font-bold text-slate-800">
                                         {branch.name}
                                     </h3>
+
+                                    {/* ALAMAT */}
 
                                     <p className="mt-1 text-sm text-slate-500">
                                         {branch.address}
                                     </p>
 
+                                    {/* DETAIL */}
+
                                     <div className="mt-3 space-y-2">
+                                        {/* STATUS */}
+
                                         <div className="rounded-lg bg-slate-100 p-2">
                                             <p className="text-xs font-semibold text-slate-500">
                                                 Status
                                             </p>
 
-                                            <p className="text-sm font-semibold text-slate-800">
+                                            <p
+                                                className={`text-sm font-semibold ${
+                                                    branch.status === "Buka"
+                                                        ? "text-emerald-600"
+                                                        : "text-red-600"
+                                                }`}
+                                            >
                                                 {branch.status || "-"}
                                             </p>
                                         </div>
+
+                                        {/* TELEPON */}
 
                                         <div className="rounded-lg bg-slate-100 p-2">
                                             <p className="text-xs font-semibold text-slate-500">
@@ -441,6 +496,8 @@ export default function LocationMap({ branches = [] }) {
                                             </p>
                                         </div>
 
+                                        {/* JAM */}
+
                                         <div className="rounded-lg bg-slate-100 p-2">
                                             <p className="text-xs font-semibold text-slate-500">
                                                 Jam Operasional
@@ -451,14 +508,31 @@ export default function LocationMap({ branches = [] }) {
                                                 {branch.close_time || "-"}
                                             </p>
                                         </div>
+
+                                        {/* KOORDINAT */}
+
+                                        <div className="rounded-lg bg-slate-100 p-2">
+                                            <p className="text-xs font-semibold text-slate-500">
+                                                Koordinat
+                                            </p>
+
+                                            <p className="text-sm font-semibold text-slate-800">
+                                                {latitude}, {longitude}
+                                            </p>
+                                        </div>
                                     </div>
+
+                                    {/* ==================================================
+                                        BUKA RUTE
+                                    ================================================== */}
 
                                     <button
                                         type="button"
                                         onClick={() => {
                                             window.open(
                                                 `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
-                                                "_blank"
+                                                "_blank",
+                                                "noopener,noreferrer"
                                             );
                                         }}
                                         className="mt-3 w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
@@ -472,7 +546,9 @@ export default function LocationMap({ branches = [] }) {
                 })}
             </MapContainer>
 
-            {/* Status lokasi */}
+            {/* ==========================================================
+                STATUS LOKASI
+            ========================================================== */}
 
             <div className="absolute left-3 top-3 z-[1000]">
                 <div className="rounded-xl bg-white/95 px-3 py-2 text-xs font-medium shadow-lg backdrop-blur">
@@ -492,7 +568,9 @@ export default function LocationMap({ branches = [] }) {
                 </div>
             </div>
 
-            {/* Jumlah cabang */}
+            {/* ==========================================================
+                JUMLAH CABANG
+            ========================================================== */}
 
             <div className="absolute bottom-3 left-3 z-[1000]">
                 <div className="rounded-xl bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur">
